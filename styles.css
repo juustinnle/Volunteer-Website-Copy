@@ -37,6 +37,13 @@ nav ul li a {
     text-decoration: none;
     padding: 10px 15px;
     display: block;
+    font-size: 16px;
+    transition: font-weight 0.5s ease, font-size 0.5s ease; /* Smooth transition for font-weight and font-size */
+}
+
+nav ul li a:hover {
+    font-weight: bold; /* Bold text on hover */
+    font-size: 18px; /* Slightly increase font size on hover */
 }
 
 nav ul li .dropdown-content {
@@ -54,9 +61,12 @@ nav ul li .dropdown-content a {
     padding: 12px 16px;
     text-decoration: none;
     display: block;
+    transition: font-weight 0.5s ease, font-size 0.5s ease; /* Smooth transition for font-weight and font-size */
 }
 
 nav ul li .dropdown-content a:hover {
+    font-weight: bold; /* Bold text on hover */
+    font-size: 18px; /* Slightly increase font size on hover */
     background-color: #f1f1f1;
 }
 
@@ -64,12 +74,13 @@ nav ul li:hover .dropdown-content {
     display: block;
 }
 
+/* Other styles remain unchanged */
 .content-section {
     display: none;
     padding: 60px 20px;
     margin-top: 50px;
     width: 100%;
-    max-width: 800px; /* Adjusted for a wider table */
+    max-width: 800px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -94,6 +105,10 @@ input, textarea, select, button {
     box-sizing: border-box;
 }
 
+textarea {
+    resize: none; /* Prevent resizing */
+}
+
 button {
     background-color: #333;
     color: white;
@@ -112,7 +127,7 @@ table {
 }
 
 th, td {
-    padding: 15px 20px; /* Increased padding for more spacing */
+    padding: 15px 20px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
@@ -146,7 +161,7 @@ thead {
 /* Centering the Volunteer History Section */
 #history {
     text-align: center;
-    width: 100%; /* Ensure it takes full width for centering */
+    width: 100%;
 }
 
 #history h1 {
@@ -154,8 +169,8 @@ thead {
 }
 
 #history table {
-    margin: 0 auto; /* Center the table */
-    max-width: 100%; /* Ensure it doesn't overflow */
+    margin: 0 auto;
+    max-width: 100%;
 }
 
 #empty-message {
