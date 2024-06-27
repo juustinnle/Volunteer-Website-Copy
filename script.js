@@ -54,6 +54,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const availabilityEndInput = document.getElementById('availability-end');
     const selectedDatesContainer = document.getElementById('selected-dates');
 
+    function isDateRangeOverlap(startDate1, endDate1, startDate2, endDate2) {
+        return (startDate1 <= endDate2) && (startDate2 <= endDate1);
+    }
+
+    function isDateRangeDuplicate(startDate, endDate, dateRanges) {
+        return dateRanges.some(range => {
+            const [existingStartDate, existingEndDate] = range.split(' to ').map(date => new Date(date));
+            return (new Date(startDate).getTime() === existingStartDate.getTime() && new Date(endDate).getTime() === existingEndDate.getTime());
+        });
+    }
+
     addAvailabilityButton.addEventListener('click', function() {
         const startDate = availabilityStartInput.value;
         const endDate = availabilityEndInput.value;
@@ -61,16 +72,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (new Date(startDate) > new Date(endDate)) {
                 alert('End date cannot be before start date.');
             } else {
-                const dateRange = `${startDate} to ${endDate}`;
-                const dateButton = document.createElement('button');
-                dateButton.textContent = dateRange;
-                dateButton.classList.add('date-button');
-                dateButton.addEventListener('click', function() {
-                    selectedDatesContainer.removeChild(dateButton);
-                });
-                selectedDatesContainer.appendChild(dateButton);
-                availabilityStartInput.value = '';
-                availabilityEndInput.value = '';
+                const dateRanges = Array.from(selectedDatesContainer.children).map(button => button.textContent);
+                if (isDateRangeDuplicate(startDate, endDate, dateRanges)) {
+                    alert('This date range is already selected.');
+                } else if (dateRanges.some(range => {
+                    const [existingStartDate, existingEndDate] = range.split(' to ').map(date => new Date(date));
+                    return isDateRangeOverlap(new Date(startDate), new Date(endDate), existingStartDate, existingEndDate);
+                })) {
+                    alert('This date range overlaps with an existing range.');
+                } else {
+                    const dateRange = `${startDate} to ${endDate}`;
+                    const dateButton = document.createElement('button');
+                    dateButton.textContent = dateRange;
+                    dateButton.classList.add('date-button');
+                    dateButton.addEventListener('click', function() {
+                        selectedDatesContainer.removeChild(dateButton);
+                    });
+                    selectedDatesContainer.appendChild(dateButton);
+                    availabilityStartInput.value = '';
+                    availabilityEndInput.value = '';
+                }
             }
         } else {
             alert('Please select both start and end dates.');
@@ -90,16 +111,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (new Date(startDate) > new Date(endDate)) {
                 alert('End date cannot be before start date.');
             } else {
-                const dateRange = `${startDate} to ${endDate}`;
-                const dateButton = document.createElement('button');
-                dateButton.textContent = dateRange;
-                dateButton.classList.add('date-button');
-                dateButton.addEventListener('click', function() {
-                    selectedEventDatesContainer.removeChild(dateButton);
-                });
-                selectedEventDatesContainer.appendChild(dateButton);
-                eventStartDateInput.value = '';
-                eventEndDateInput.value = '';
+                const dateRanges = Array.from(selectedEventDatesContainer.children).map(button => button.textContent);
+                if (isDateRangeDuplicate(startDate, endDate, dateRanges)) {
+                    alert('This date range is already selected.');
+                } else if (dateRanges.some(range => {
+                    const [existingStartDate, existingEndDate] = range.split(' to ').map(date => new Date(date));
+                    return isDateRangeOverlap(new Date(startDate), new Date(endDate), existingStartDate, existingEndDate);
+                })) {
+                    alert('This date range overlaps with an existing range.');
+                } else {
+                    const dateRange = `${startDate} to ${endDate}`;
+                    const dateButton = document.createElement('button');
+                    dateButton.textContent = dateRange;
+                    dateButton.classList.add('date-button');
+                    dateButton.addEventListener('click', function() {
+                        selectedEventDatesContainer.removeChild(dateButton);
+                    });
+                    selectedEventDatesContainer.appendChild(dateButton);
+                    eventStartDateInput.value = '';
+                    eventEndDateInput.value = '';
+                }
             }
         } else {
             alert('Please select both start and end dates.');
