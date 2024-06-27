@@ -1,0 +1,165 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #333;
+    color: #fff;
+    padding: 10px 0;
+    display: flex;
+    justify-content: center;
+    z-index: 1000;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+nav ul li {
+    margin: 0 15px;
+    position: relative;
+}
+
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 15px;
+    display: block;
+}
+
+nav ul li .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    right: 0;
+}
+
+nav ul li .dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+nav ul li .dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+nav ul li:hover .dropdown-content {
+    display: block;
+}
+
+.content-section {
+    display: none;
+    padding: 60px 20px;
+    margin-top: 50px;
+    width: 100%;
+    max-width: 800px; /* Adjusted for a wider table */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+label {
+    margin-bottom: 5px;
+}
+
+input, textarea, select, button {
+    margin-bottom: 15px;
+    padding: 10px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto; /* Center the table */
+}
+
+th, td {
+    padding: 15px 20px; /* Increased padding for more spacing */
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+thead {
+    background: #f4f4f4;
+}
+
+#selected-skills, #selected-required-skills, #selected-dates, #selected-event-dates {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.skill-button, .date-button {
+    background-color: green;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    padding: 5px 10px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.skill-button:hover, .date-button:hover {
+    background-color: red;
+}
+
+/* Centering the Volunteer History Section */
+#history {
+    text-align: center;
+    width: 100%; /* Ensure it takes full width for centering */
+}
+
+#history h1 {
+    text-align: center;
+}
+
+#history table {
+    margin: 0 auto; /* Center the table */
+    max-width: 100%; /* Ensure it doesn't overflow */
+}
+
+#empty-message {
+    font-size: 1.2em;
+    color: #666;
+    margin-top: 20px;
+}

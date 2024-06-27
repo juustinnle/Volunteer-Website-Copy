@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volunteer Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav>
+        <ul>
+            <li><a href="#login" onclick="showSection('login')">Login</a></li>
+            <li><a href="#register" onclick="showSection('register')">Register</a></li>
+            <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
+            <li><a href="#event-management" onclick="showSection('event-management')">Event Management</a></li>
+            <li><a href="#volunteer-matching" onclick="showSection('volunteer-matching')">Volunteer Matching</a></li>
+            <li><a href="#history" onclick="showSection('history')">History</a></li>
+            <li class="dropdown">
+                <a href="#" class="dropbtn">Notifications</a>
+                <div class="dropdown-content" id="notification-list">
+                    <a href="#">Notification 1</a>
+                    <a href="#">Notification 2</a>
+                    <a href="#">Notification 3</a>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Sections -->
+    <section id="login" class="content-section">
+        <h1>Login</h1>
+        <form id="login-form">
+            <label for="login-email">Email:</label>
+            <input type="email" id="login-email" name="email" required>
+            <label for="login-password">Password:</label>
+            <input type="password" id="login-password" name="password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <section id="register" class="content-section">
+        <h1>Register</h1>
+        <form id="register-form">
+            <label for="reg-email">Email:</label>
+            <input type="email" id="reg-email" name="email" required>
+            <label for="reg-password">Password:</label>
+            <input type="password" id="reg-password" name="password" required>
+            <button type="submit">Register</button>
+        </form>
+    </section>
+
+    <section id="profile" class="content-section">
+        <h1>Profile Management</h1>
+        <form id="profile-form">
+            <label for="full-name">Full Name:</label>
+            <input type="text" id="full-name" name="full-name" maxlength="50" required>
+    
+            <label for="address-1">Address 1:</label>
+            <input type="text" id="address-1" name="address-1" maxlength="100" required>
+    
+            <label for="address-2">Address 2:</label>
+            <input type="text" id="address-2" name="address-2" maxlength="100">
+    
+            <label for="city">City:</label>
+            <input type="text" id="city" name="city" maxlength="100" required>
+    
+            <label for="state">State:</label>
+            <select id="state" name="state" required>
+                <!-- Add options for states here -->
+            </select>
+    
+            <label for="zip">Zip Code:</label>
+            <input type="text" id="zip" name="zip" maxlength="9" required pattern="\d{5}(-\d{4})?">
+    
+            <label for="skills">Skills:</label>
+            <select id="skills" name="skills">
+                <option value="first_aid">First Aid</option>
+                <option value="event_planning">Event Planning</option>
+                <option value="public_speaking">Public Speaking</option>
+                <option value="data_entry">Data Entry</option>
+                <option value="social_media_management">Social Media Management</option>
+                <option value="cooking">Cooking</option>
+                <option value="fundraising">Fundraising</option>
+                <option value="childcare">Childcare</option>
+                <option value="tutoring">Tutoring</option>
+                <option value="transportation">Transportation</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="graphic_design">Graphic Design</option>
+                <option value="it_support">IT Support</option>
+                <option value="photography">Photography</option>
+                <option value="mentoring">Mentoring</option>
+                <option value="language_translation">Language Translation</option>
+                <option value="legal_advice">Legal Advice</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="counseling">Counseling</option>
+                <option value="marketing">Marketing</option>
+                <option value="administrative_support">Administrative Support</option>
+            </select>
+            <div id="selected-skills"></div>
+    
+            <label for="preferences">Preferences:</label>
+            <textarea id="preferences" name="preferences"></textarea>
+    
+            <label for="availability-start">Availability Start Date:</label>
+            <input type="date" id="availability-start" name="availability-start">
+    
+            <label for="availability-end">Availability End Date:</label>
+            <input type="date" id="availability-end" name="availability-end">
+            <button type="button" id="add-availability">Add Availability</button>
+            <div id="selected-dates"></div>
+    
+            <button type="submit">Save Profile</button>
+        </form>
+    </section>
+    
+    <section id="event-management" class="content-section">
+        <h1>Event Management</h1>
+        <form id="event-management-form">
+            <label for="event-name">Event Name:</label>
+            <input type="text" id="event-name" name="event-name" maxlength="100" required>
+    
+            <label for="event-description">Event Description:</label>
+            <textarea id="event-description" name="event-description" required></textarea>
+    
+            <label for="location">Location:</label>
+            <textarea id="location" name="location" required></textarea>
+    
+            <label for="required-skills">Required Skills:</label>
+            <select id="required-skills" name="required-skills">
+                <option value="first_aid">First Aid</option>
+                <option value="event_planning">Event Planning</option>
+                <option value="public_speaking">Public Speaking</option>
+                <option value="data_entry">Data Entry</option>
+                <option value="social_media_management">Social Media Management</option>
+                <option value="cooking">Cooking</option>
+                <option value="fundraising">Fundraising</option>
+                <option value="childcare">Childcare</option>
+                <option value="tutoring">Tutoring</option>
+                <option value="transportation">Transportation</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="graphic_design">Graphic Design</option>
+                <option value="it_support">IT Support</option>
+                <option value="photography">Photography</option>
+                <option value="mentoring">Mentoring</option>
+                <option value="language_translation">Language Translation</option>
+                <option value="legal_advice">Legal Advice</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="counseling">Counseling</option>
+                <option value="marketing">Marketing</option>
+                <option value="administrative_support">Administrative Support</option>
+            </select>
+            <div id="selected-required-skills"></div>
+    
+            <label for="urgency">Urgency:</label>
+            <select id="urgency" name="urgency" required>
+                <!-- Add urgency options here -->
+            </select>
+    
+            <label for="event-start-date">Event Start Date:</label>
+            <input type="date" id="event-start-date" name="event-start-date">
+    
+            <label for="event-end-date">Event End Date:</label>
+            <input type="date" id="event-end-date" name="event-end-date">
+            <button type="button" id="add-event-date">Add Event Date</button>
+            <div id="selected-event-dates"></div>
+    
+            <button type="submit">Create Event</button>
+        </form>
+    </section>
+    
+
+    <section id="volunteer-matching" class="content-section">
+        <h1>Volunteer Matching</h1>
+        <form id="volunteer-matching-form">
+            <label for="volunteer-name">Volunteer Name:</label>
+            <input type="text" id="volunteer-name" name="volunteer-name" readonly>
+
+            <label for="matched-event">Matched Event:</label>
+            <input type="text" id="matched-event" name="matched-event" readonly>
+
+            <button type="submit">Match Volunteer</button>
+        </form>
+    </section>
+
+    <section id="history" class="content-section">
+        <h1>Volunteer History</h1>
+        <div id="history-content">
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Event Description</th>
+                        <th>Location</th>
+                        <th>Required Skills</th>
+                        <th>Urgency</th>
+                        <th>Event Date</th>
+                        <th>Participation Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Volunteer participation history will be displayed here -->
+                </tbody>
+            </table>
+            <p id="empty-message" style="display: none;">Volunteer History Is Empty</p>
+        </div>
+    </section>
+    
+    <script src="script.js"></script>
+</body>
+</html>
