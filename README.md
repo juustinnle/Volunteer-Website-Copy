@@ -56,3 +56,9 @@ Volunteers will receive notifications about their assignments.
 Track volunteer history:
 
 View the participation history and performance metrics on the history page.
+
+Frontend: HTML, CSS, JavaScript
+Backend: Node.js, Express.js
+Database: MySQL or PostgreSQL
+Notification System: Push Notifications (Web Push)
+Authentication: JWT, OAuth
