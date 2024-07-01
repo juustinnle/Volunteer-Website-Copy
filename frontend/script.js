@@ -162,9 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Call checkVolunteerHistory when the page loads
     checkVolunteerHistory();
-});
 
-document.addEventListener('DOMContentLoaded', function() {
     // Handle registration form submission
     const registerForm = document.getElementById('register-form');
     registerForm.addEventListener('submit', function(event) {
@@ -207,9 +205,100 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.text())
         .then(data => {
             alert(data);
+            if (data === "Login successful.") {
+                localStorage.setItem('email', email);
+                showSection('profile');
+                fetchProfile(email);
+            }
         })
         .catch(error => {
             console.error('Error:', error);
         });
     });
+
+    // Fetch and display user profile
+    function fetchProfile(email) {
+        fetch(`http://localhost:3000/profile/${email}`)
+        .then(response => response.json())
+        .then(profile => {
+            document.getElementById('full-name').value = profile.fullName || '';
+            document.getElementById('address-1').value = profile.address1 || '';
+            document.getElementById('address-2').value = profile.address2 || '';
+            document.getElementById('city').value = profile.city || '';
+            document.getElementById('state').value = profile.state || '';
+            document.getElementById('zip').value = profile.zip || '';
+            document.getElementById('preferences').value = profile.preferences || '';
+            // Set skills
+            selectedSkillsContainer.innerHTML = '';
+            if (profile.skills) {
+                profile.skills.forEach(skill => {
+                    const skillButton = document.createElement('button');
+                    skillButton.textContent = skill;
+                    skillButton.classList.add('skill-button');
+                    skillButton.addEventListener('click', function() {
+                        selectedSkillsContainer.removeChild(skillButton);
+                    });
+                    selectedSkillsContainer.appendChild(skillButton);
+                });
+            }
+            // Set availability dates
+            selectedDatesContainer.innerHTML = '';
+            if (profile.availability) {
+                profile.availability.forEach(dateRange => {
+                    const dateButton = document.createElement('button');
+                    dateButton.textContent = dateRange;
+                    dateButton.classList.add('date-button');
+                    dateButton.addEventListener('click', function() {
+                        selectedDatesContainer.removeChild(dateButton);
+                    });
+                    selectedDatesContainer.appendChild(dateButton);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Handle profile form submission
+    const profileForm = document.getElementById('profile-form');
+    profileForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const email = localStorage.getItem('email'); // Use the logged-in user's email
+        const profile = {
+            fullName: document.getElementById('full-name').value,
+            address1: document.getElementById('address-1').value,
+            address2: document.getElementById('address-2').value,
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zip: document.getElementById('zip').value,
+            preferences: document.getElementById('preferences').value,
+            skills: Array.from(selectedSkillsContainer.children).map(button => button.textContent),
+            availability: Array.from(selectedDatesContainer.children).map(button => button.textContent)
+        };
+
+        fetch(`http://localhost:3000/profile/${email}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile })
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+    // Example: Fetch profile on page load (use the logged-in user's email)
+    const email = localStorage.getItem('email');
+    if (email) {
+        fetchProfile(email);
+        showSection('profile');
+    } else {
+        showSection('login');
+    }
 });

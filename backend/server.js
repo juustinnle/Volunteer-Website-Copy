@@ -26,7 +26,7 @@ app.post('/register', (req, res) => {
   }
 
   // Add user to the array
-  users.push({ email, password });
+  users.push({ email, password, profile: {} });
   res.status(201).send('User registered successfully.');
 });
 
@@ -46,6 +46,28 @@ app.post('/login', (req, res) => {
   }
 
   res.status(200).send('Login successful.');
+});
+
+// Get user profile endpoint
+app.get('/profile/:email', (req, res) => {
+  const { email } = req.params;
+  const user = users.find(user => user.email === email);
+  if (!user) {
+    return res.status(404).send('User not found.');
+  }
+  res.status(200).json(user.profile);
+});
+
+// Update user profile endpoint
+app.put('/profile/:email', (req, res) => {
+  const { email } = req.params;
+  const { profile } = req.body;
+  const userIndex = users.findIndex(user => user.email === email);
+  if (userIndex === -1) {
+    return res.status(404).send('User not found.');
+  }
+  users[userIndex].profile = profile;
+  res.status(200).send('Profile updated successfully.');
 });
 
 // Test endpoint
