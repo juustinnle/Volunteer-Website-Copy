@@ -163,3 +163,53 @@ document.addEventListener('DOMContentLoaded', function() {
     // Call checkVolunteerHistory when the page loads
     checkVolunteerHistory();
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle registration form submission
+    const registerForm = document.getElementById('register-form');
+    registerForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+
+        fetch('http://localhost:3000/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+    // Handle login form submission
+    const loginForm = document.getElementById('login-form');
+    loginForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        fetch('http://localhost:3000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+});
