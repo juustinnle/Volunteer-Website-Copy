@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dropdownContent.classList.toggle('show');
     });
 
-    // Close the dropdown if the user clicks outside of it
     window.onclick = function(event) {
         if (!event.target.matches('.dropbtn')) {
             const dropdowns = document.getElementsByClassName("dropdown-content");
@@ -20,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Skills Selection Handling
     const skillsSelect = document.getElementById('skills');
     const selectedSkillsContainer = document.getElementById('selected-skills');
     skillsSelect.addEventListener('change', function() {
@@ -34,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedSkillsContainer.appendChild(skillButton);
     });
 
-    // Required Skills Selection Handling
     const requiredSkillsSelect = document.getElementById('required-skills');
     const selectedRequiredSkillsContainer = document.getElementById('selected-required-skills');
     requiredSkillsSelect.addEventListener('change', function() {
@@ -48,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedRequiredSkillsContainer.appendChild(skillButton);
     });
 
-    // Date Range Selection Handling for Profile Page
     const addAvailabilityButton = document.getElementById('add-availability');
     const availabilityStartInput = document.getElementById('availability-start');
     const availabilityEndInput = document.getElementById('availability-end');
@@ -98,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Date Range Selection Handling for Event Management
     const addEventDateButton = document.getElementById('add-event-date');
     const eventStartDateInput = document.getElementById('event-start-date');
     const eventEndDateInput = document.getElementById('event-end-date');
@@ -137,7 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Show and hide sections based on navigation
     window.showSection = function(sectionId) {
         const sections = document.querySelectorAll('.content-section');
         sections.forEach(section => {
@@ -146,10 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(sectionId).style.display = 'block';
     };
 
-    // Show the login section by default
     showSection('login');
 
-    // Check if volunteer history is empty
     function checkVolunteerHistory() {
         const historyTableBody = document.querySelector('#history-table tbody');
         const emptyMessage = document.getElementById('empty-message');
@@ -160,10 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Call checkVolunteerHistory when the page loads
     checkVolunteerHistory();
 
-    // Handle registration form submission
     const registerForm = document.getElementById('register-form');
     registerForm.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -187,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle login form submission
     const loginForm = document.getElementById('login-form');
     loginForm.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -209,6 +198,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('email', email);
                 showSection('profile');
                 fetchProfile(email);
+                fetchNotifications(email);
+                fetchVolunteerHistory(email);
+                fetchEvents(); // Fetch events after login
+                fetchAdminEvents(); // Fetch admin events after login
             }
         })
         .catch(error => {
@@ -216,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Fetch and display user profile
     function fetchProfile(email) {
         fetch(`http://localhost:3000/profile/${email}`)
         .then(response => response.json())
@@ -228,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('state').value = profile.state || '';
             document.getElementById('zip').value = profile.zip || '';
             document.getElementById('preferences').value = profile.preferences || '';
-            // Set skills
             selectedSkillsContainer.innerHTML = '';
             if (profile.skills) {
                 profile.skills.forEach(skill => {
@@ -241,7 +232,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedSkillsContainer.appendChild(skillButton);
                 });
             }
-            // Set availability dates
             selectedDatesContainer.innerHTML = '';
             if (profile.availability) {
                 profile.availability.forEach(dateRange => {
@@ -260,11 +250,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle profile form submission
     const profileForm = document.getElementById('profile-form');
     profileForm.addEventListener('submit', function(event) {
         event.preventDefault();
-        const email = localStorage.getItem('email'); // Use the logged-in user's email
+        const email = localStorage.getItem('email');
         const profile = {
             fullName: document.getElementById('full-name').value,
             address1: document.getElementById('address-1').value,
@@ -293,10 +282,181 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Example: Fetch profile on page load (use the logged-in user's email)
+    function fetchNotifications(email) {
+        fetch(`http://localhost:3000/notifications/${email}`)
+        .then(response => response.json())
+        .then(notifications => {
+            const notificationList = document.getElementById('notification-list');
+            notificationList.innerHTML = '';
+            notifications.forEach(notification => {
+                const notificationItem = document.createElement('a');
+                notificationItem.textContent = notification.message;
+                notificationList.appendChild(notificationItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function fetchVolunteerHistory(email) {
+        fetch(`http://localhost:3000/history/${email}`)
+        .then(response => response.json())
+        .then(history => {
+            const historyTableBody = document.querySelector('#history-table tbody');
+            historyTableBody.innerHTML = '';
+            if (history.length === 0) {
+                document.getElementById('empty-message').style.display = 'block';
+            } else {
+                document.getElementById('empty-message').style.display = 'none';
+                history.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.eventName}</td>
+                        <td>${record.eventDescription}</td>
+                        <td>${record.location}</td>
+                        <td>${record.requiredSkills.join(', ')}</td>
+                        <td>${record.urgency}</td>
+                        <td>${record.dates.join(', ')}</td>
+                        <td>${record.status}</td>
+                    `;
+                    historyTableBody.appendChild(row);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    const eventManagementForm = document.getElementById('event-management-form');
+    eventManagementForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const eventDetails = {
+            name: document.getElementById('event-name').value,
+            description: document.getElementById('event-description').value,
+            location: document.getElementById('location').value,
+            requiredSkills: Array.from(selectedRequiredSkillsContainer.children).map(button => button.textContent),
+            urgency: document.getElementById('urgency').value,
+            eventDates: Array.from(selectedEventDatesContainer.children).map(button => button.textContent)
+        };
+
+        fetch('http://localhost:3000/events', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(eventDetails)
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+            fetchAdminEvents(); // Fetch the updated list of admin events
+            fetchNotifications(localStorage.getItem('email')); // Fetch notifications after event creation
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+    function fetchEvents() {
+        fetch('http://localhost:3000/events')
+        .then(response => response.json())
+        .then(events => {
+            const eventsContainer = document.getElementById('events-container');
+            eventsContainer.innerHTML = '';
+            events.forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.innerHTML = `
+                    <h3>${event.name}</h3>
+                    <p>${event.description}</p>
+                    <p>Location: ${event.location}</p>
+                    <p>Required Skills: ${event.requiredSkills.join(', ')}</p>
+                    <p>Urgency: ${event.urgency}</p>
+                    <p>Dates: ${event.eventDates.join(', ')}</p>
+                `;
+                eventsContainer.appendChild(eventDiv);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function fetchAdminEvents() {
+        fetch('http://localhost:3000/events')
+        .then(response => response.json())
+        .then(events => {
+            const adminEventsContainer = document.getElementById('admin-events-container');
+            adminEventsContainer.innerHTML = '';
+            events.forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.innerHTML = `
+                    <h3>${event.name}</h3>
+                    <p>${event.description}</p>
+                    <p>Location: ${event.location}</p>
+                    <p>Required Skills: ${event.requiredSkills.join(', ')}</p>
+                    <p>Urgency: ${event.urgency}</p>
+                    <p>Dates: ${event.eventDates.join(', ')}</p>
+                    <button onclick="deleteEvent('${event.id}')">Delete</button>
+                `;
+                adminEventsContainer.appendChild(eventDiv);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    window.deleteEvent = function(eventId) {
+        fetch(`http://localhost:3000/events/${eventId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+            fetchAdminEvents(); // Refresh the list of admin events
+            fetchNotifications(localStorage.getItem('email')); // Refresh notifications
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    const volunteerMatchingForm = document.getElementById('volunteer-matching-form');
+    volunteerMatchingForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const email = localStorage.getItem('email');
+        const eventId = document.getElementById('matched-event-id').value;
+
+        fetch('http://localhost:3000/match-volunteer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, eventId })
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
     const email = localStorage.getItem('email');
     if (email) {
         fetchProfile(email);
+        fetchNotifications(email);
+        fetchVolunteerHistory(email);
+        fetchEvents(); // Fetch events if already logged in
+        fetchAdminEvents(); // Fetch admin events if already logged in
         showSection('profile');
     } else {
         showSection('login');
