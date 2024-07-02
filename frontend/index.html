@@ -14,14 +14,13 @@
             <li><a href="#register" onclick="showSection('register')">Register</a></li>
             <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
             <li><a href="#event-management" onclick="showSection('event-management')">Event Management</a></li>
+            <li><a href="#events" onclick="showSection('events')">Events</a></li>
             <li><a href="#volunteer-matching" onclick="showSection('volunteer-matching')">Volunteer Matching</a></li>
             <li><a href="#history" onclick="showSection('history')">History</a></li>
             <li class="dropdown">
                 <a href="#" class="dropbtn">Notifications</a>
                 <div class="dropdown-content" id="notification-list">
-                    <a href="#">Example Notification 1</a>
-                    <a href="#">Example Notification 2</a>
-                    <a href="#">Example Notification 3</a>
+                    <!-- Notification items will be dynamically added here -->
                 </div>
             </li>
         </ul>
@@ -55,77 +54,35 @@
         <form id="profile-form">
             <label for="full-name">Full Name:</label>
             <input type="text" id="full-name" name="full-name" maxlength="50" required>
-    
+
             <label for="address-1">Address 1:</label>
             <input type="text" id="address-1" name="address-1" maxlength="100" required>
-    
+
             <label for="address-2">Address 2:</label>
             <input type="text" id="address-2" name="address-2" maxlength="100">
-    
+
             <label for="city">City:</label>
             <input type="text" id="city" name="city" maxlength="100" required>
-    
+
             <label for="state">State:</label>
             <select id="state" name="state" required>
+                <!-- State options -->
                 <option value="AL">Alabama</option>
                 <option value="AK">Alaska</option>
                 <option value="AZ">Arizona</option>
                 <option value="AR">Arkansas</option>
                 <option value="CA">California</option>
-                <option value="CO">Colorado</option>
-                <option value="CT">Connecticut</option>
-                <option value="DE">Delaware</option>
-                <option value="DC">District of Columbia</option>
-                <option value="FL">Florida</option>
-                <option value="GA">Georgia</option>
-                <option value="HI">Hawaii</option>
-                <option value="ID">Idaho</option>
-                <option value="IL">Illinois</option>
-                <option value="IN">Indiana</option>
-                <option value="IA">Iowa</option>
-                <option value="KS">Kansas</option>
-                <option value="KY">Kentucky</option>
-                <option value="LA">Louisiana</option>
-                <option value="ME">Maine</option>
-                <option value="MD">Maryland</option>
-                <option value="MA">Massachusetts</option>
-                <option value="MI">Michigan</option>
-                <option value="MN">Minnesota</option>
-                <option value="MS">Mississippi</option>
-                <option value="MO">Missouri</option>
-                <option value="MT">Montana</option>
-                <option value="NE">Nebraska</option>
-                <option value="NV">Nevada</option>
-                <option value="NH">New Hampshire</option>
-                <option value="NJ">New Jersey</option>
-                <option value="NM">New Mexico</option>
-                <option value="NY">New York</option>
-                <option value="NC">North Carolina</option>
-                <option value="ND">North Dakota</option>
-                <option value="OH">Ohio</option>
-                <option value="OK">Oklahoma</option>
-                <option value="OR">Oregon</option>
-                <option value="PA">Pennsylvania</option>
-                <option value="RI">Rhode Island</option>
-                <option value="SC">South Carolina</option>
-                <option value="SD">South Dakota</option>
-                <option value="TN">Tennessee</option>
-                <option value="TX">Texas</option>
-                <option value="UT">Utah</option>
-                <option value="VT">Vermont</option>
-                <option value="VA">Virginia</option>
-                <option value="WA">Washington</option>
-                <option value="WV">West Virginia</option>
-                <option value="WI">Wisconsin</option>
-                <option value="WY">Wyoming</option>
+                <!-- Add all other states -->
             </select>
-    
+
             <label for="zip">Zip Code:</label>
-            <input type="text" id="zip" name="zip" maxlength="9" required pattern="\d{5}(-\d{4})?">
-    
+            <input type="text" id="zip" name="zip" maxlength="9" required pattern="\\d{5}(-\\d{4})?">
+
             <label for="skills">Skills:</label>
             <select id="skills" name="skills">
+                <!-- Skills options -->
                 <option value="first_aid">First Aid</option>
+                <option value="cpr">CPR</option>
                 <option value="event_planning">Event Planning</option>
                 <option value="public_speaking">Public Speaking</option>
                 <option value="data_entry">Data Entry</option>
@@ -146,81 +103,95 @@
                 <option value="counseling">Counseling</option>
                 <option value="marketing">Marketing</option>
                 <option value="administrative_support">Administrative Support</option>
+                <option value="event_coordination">Event Coordination</option>
+                <option value="volunteer_management">Volunteer Management</option>
+                <option value="community_outreach">Community Outreach</option>
+                <option value="environmental_cleanup">Environmental Cleanup</option>
+                <option value="elder_care">Elder Care</option>
+                <option value="youth_mentoring">Youth Mentoring</option>
+                <option value="disaster_relief">Disaster Relief</option>
+                <option value="animal_care">Animal Care</option>
+                <option value="teaching">Teaching</option>
+                <option value="writing">Writing</option>
+                <option value="editing">Editing</option>
+                <option value="public_relations">Public Relations</option>
+                <option value="logistics">Logistics</option>
+                <option value="project_management">Project Management</option>
+                <option value="research">Research</option>
+                <option value="survey_administration">Survey Administration</option>
+                <option value="food_service">Food Service</option>
+                <option value="event_setup">Event Setup</option>
+                <option value="traffic_control">Traffic Control</option>
+                <option value="medical_support">Medical Support</option>
+                <option value="security">Security</option>
+                <option value="registration">Registration</option>
+                <option value="hospitality">Hospitality</option>
+                <option value="customer_service">Customer Service</option>
+                <option value="donation_management">Donation Management</option>
+                <option value="phone_banking">Phone Banking</option>
+                <option value="translation">Translation</option>
+                <option value="sign_language">Sign Language</option>
             </select>
             <div id="selected-skills"></div>
-    
+
             <label for="preferences">Preferences:</label>
             <textarea id="preferences" name="preferences"></textarea>
-    
+
             <label for="availability-start">Availability Start Date:</label>
             <input type="date" id="availability-start" name="availability-start">
-    
+
             <label for="availability-end">Availability End Date:</label>
             <input type="date" id="availability-end" name="availability-end">
             <button type="button" id="add-availability">Add Availability</button>
             <div id="selected-dates"></div>
-    
+
             <button type="submit">Save Profile</button>
         </form>
     </section>
-    
+
     <section id="event-management" class="content-section">
         <h1>Event Management</h1>
         <form id="event-management-form">
             <label for="event-name">Event Name:</label>
             <input type="text" id="event-name" name="event-name" maxlength="100" required>
-    
+
             <label for="event-description">Event Description:</label>
             <textarea id="event-description" name="event-description" required></textarea>
-    
+
             <label for="location">Location:</label>
             <textarea id="location" name="location" required></textarea>
-    
+
             <label for="required-skills">Required Skills:</label>
             <select id="required-skills" name="required-skills">
-                <option value="first_aid">First Aid</option>
-                <option value="event_planning">Event Planning</option>
-                <option value="public_speaking">Public Speaking</option>
-                <option value="data_entry">Data Entry</option>
-                <option value="social_media_management">Social Media Management</option>
-                <option value="cooking">Cooking</option>
-                <option value="fundraising">Fundraising</option>
-                <option value="childcare">Childcare</option>
-                <option value="tutoring">Tutoring</option>
-                <option value="transportation">Transportation</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="graphic_design">Graphic Design</option>
-                <option value="it_support">IT Support</option>
-                <option value="photography">Photography</option>
-                <option value="mentoring">Mentoring</option>
-                <option value="language_translation">Language Translation</option>
-                <option value="legal_advice">Legal Advice</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="counseling">Counseling</option>
-                <option value="marketing">Marketing</option>
-                <option value="administrative_support">Administrative Support</option>
+                <!-- Skills options -->
             </select>
             <div id="selected-required-skills"></div>
-    
+
             <label for="urgency">Urgency:</label>
             <select id="urgency" name="urgency" required>
                 <option value="low-urgency">Low</option>
                 <option value="medium-urgency">Medium</option>
                 <option value="high-urgency">High</option>
             </select>
-    
+
             <label for="event-start-date">Event Start Date:</label>
             <input type="date" id="event-start-date" name="event-start-date">
-    
+
             <label for="event-end-date">Event End Date:</label>
             <input type="date" id="event-end-date" name="event-end-date">
             <button type="button" id="add-event-date">Add Event Date</button>
             <div id="selected-event-dates"></div>
-    
+
             <button type="submit">Create Event</button>
         </form>
+        <div id="admin-events-container"></div>
     </section>
-    
+
+    <section id="events" class="content-section">
+        <h1>Events</h1>
+        <div id="events-container"></div>
+    </section>
+
     <section id="volunteer-matching" class="content-section">
         <h1>Volunteer Matching</h1>
         <form id="volunteer-matching-form">
@@ -256,7 +227,7 @@
             <p id="empty-message" style="display: none;">Volunteer History Is Empty</p>
         </div>
     </section>
-    
+
     <script src="script.js"></script>
 </body>
 </html>
