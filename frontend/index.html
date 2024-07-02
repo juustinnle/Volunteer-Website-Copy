@@ -76,7 +76,7 @@
             </select>
 
             <label for="zip">Zip Code:</label>
-            <input type="text" id="zip" name="zip" maxlength="9" required pattern="\\d{5}(-\\d{4})?">
+            <input type="text" id="zip" name="zip" maxlength="9" required>
 
             <label for="skills">Skills:</label>
             <select id="skills" name="skills">
@@ -196,15 +196,19 @@
         <h1>Volunteer Matching</h1>
         <form id="volunteer-matching-form">
             <label for="volunteer-name">Volunteer Name:</label>
-            <input type="text" id="volunteer-name" name="volunteer-name" readonly>
-
+            <select id="volunteer-name" name="volunteer-name">
+                <!-- User options will be dynamically added here -->
+            </select>
+    
             <label for="matched-event">Matched Event:</label>
-            <input type="text" id="matched-event" name="matched-event" readonly>
-
+            <select id="matched-event" name="matched-event">
+                <!-- Event options will be dynamically added here -->
+            </select>
+    
             <button type="submit">Match Volunteer</button>
         </form>
     </section>
-
+    
     <section id="history" class="content-section">
         <h1>Volunteer History</h1>
         <div id="history-content">

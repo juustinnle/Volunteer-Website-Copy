@@ -177,3 +177,7 @@ thead {
     color: #666;
     margin-top: 20px;
 }
+
+#matched-event {
+    margin-bottom: 30px;
+}

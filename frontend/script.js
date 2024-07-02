@@ -209,6 +209,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    fetch('http://localhost:3000/users')
+    .then(response => response.json())
+    .then(users => {
+        const volunteerNameSelect = document.getElementById('volunteer-name');
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.email;
+            option.textContent = user.email;
+            volunteerNameSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching users:', error);
+    });
+
+// Fetch events and populate the volunteer matching form
+fetch('http://localhost:3000/events')
+    .then(response => response.json())
+    .then(events => {
+        const matchedEventSelect = document.getElementById('matched-event');
+        events.forEach(event => {
+            const option = document.createElement('option');
+            option.value = event.id;
+            option.textContent = event.name;
+            matchedEventSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching events:', error);
+    });
+
     function fetchProfile(email) {
         fetch(`http://localhost:3000/profile/${email}`)
         .then(response => response.json())
@@ -354,11 +385,13 @@ document.addEventListener('DOMContentLoaded', function() {
             alert(data);
             fetchAdminEvents(); // Fetch the updated list of admin events
             fetchNotifications(localStorage.getItem('email')); // Fetch notifications after event creation
+            showSection('event-management')
         })
         .catch(error => {
             console.error('Error:', error);
         });
     });
+
 
     function fetchEvents() {
         fetch('http://localhost:3000/events')
@@ -409,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to delete an event and refresh the page while staying on the same section
     window.deleteEvent = function(eventId) {
         fetch(`http://localhost:3000/events/${eventId}`, {
             method: 'DELETE',
@@ -419,13 +453,28 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.text())
         .then(data => {
             alert(data);
+            const currentSection = localStorage.getItem('currentSection');
             fetchAdminEvents(); // Refresh the list of admin events
             fetchNotifications(localStorage.getItem('email')); // Refresh notifications
+            location.reload();
+            showSection('event-management');
         })
         .catch(error => {
             console.error('Error:', error);
         });
-    }
+    };
+
+
+    // Show section function modified to save the current section
+    window.showSection = function(sectionId) {
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById(sectionId).style.display = 'block';
+        saveCurrentSection(sectionId);
+    };
+
 
     const volunteerMatchingForm = document.getElementById('volunteer-matching-form');
     volunteerMatchingForm.addEventListener('submit', function(event) {
@@ -457,8 +506,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchVolunteerHistory(email);
         fetchEvents(); // Fetch events if already logged in
         fetchAdminEvents(); // Fetch admin events if already logged in
-        showSection('profile');
+        showSection('events')
     } else {
         showSection('login');
     }
+
 });

@@ -16,18 +16,15 @@ let notifications = [];
 app.post('/register', (req, res) => {
   const { email, password } = req.body;
 
-  // Basic validation
   if (!email || !password) {
     return res.status(400).send('Email and password are required.');
   }
 
-  // Check if user already exists
   const userExists = users.some(user => user.email === email);
   if (userExists) {
     return res.status(400).send('User already exists.');
   }
 
-  // Add user to the array
   users.push({ email, password, profile: {} });
   res.status(201).send('User registered successfully.');
 });
@@ -36,12 +33,10 @@ app.post('/register', (req, res) => {
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  // Basic validation
   if (!email || !password) {
     return res.status(400).send('Email and password are required.');
   }
 
-  // Check if user exists
   const user = users.find(user => user.email === email && user.password === password);
   if (!user) {
     return res.status(401).send('Invalid email or password.');
@@ -76,14 +71,12 @@ app.put('/profile/:email', (req, res) => {
 app.post('/events', (req, res) => {
   const { name, description, location, requiredSkills, urgency, eventDates } = req.body;
 
-  // Basic validation
   if (!name || !description || !location || !requiredSkills || !urgency || !eventDates) {
     return res.status(400).send('All fields are required.');
   }
 
-  // Add event to the array with a unique ID
   const newEvent = {
-    id: `${Date.now()}`, // unique ID using current timestamp
+    id: `${Date.now()}`,
     name,
     description,
     location,
@@ -93,7 +86,6 @@ app.post('/events', (req, res) => {
   };
   events.push(newEvent);
 
-  // Create notification for all users
   users.forEach(user => {
     notifications.push({
       email: user.email,
@@ -126,7 +118,6 @@ app.delete('/events/:id', (req, res) => {
 app.post('/notifications', (req, res) => {
   const { email, message } = req.body;
 
-  // Basic validation
   if (!email || !message) {
     return res.status(400).send('Email and message are required.');
   }
@@ -140,6 +131,11 @@ app.get('/notifications/:email', (req, res) => {
   const { email } = req.params;
   const userNotifications = notifications.filter(notification => notification.email === email);
   res.status(200).json(userNotifications);
+});
+
+// Get all users endpoint
+app.get('/users', (req, res) => {
+  res.status(200).json(users);
 });
 
 // Test endpoint
