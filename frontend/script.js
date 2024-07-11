@@ -390,6 +390,7 @@ fetch('http://localhost:3000/events')
         .catch(error => {
             console.error('Error:', error);
         });
+        location.reload();
     });
 
 
