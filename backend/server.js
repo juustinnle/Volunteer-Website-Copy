@@ -89,7 +89,7 @@ app.post('/events', (req, res) => {
   users.forEach(user => {
     notifications.push({
       email: user.email,
-      message: `New event created: ${name}`
+      message: `New event: ${name}`
     });
   });
 
@@ -136,6 +136,19 @@ app.get('/notifications/:email', (req, res) => {
 // Get all users endpoint
 app.get('/users', (req, res) => {
   res.status(200).json(users);
+});
+
+// Delete notification endpoint
+app.delete('/notifications/:email/:message', (req, res) => {
+  const { email, message } = req.params;
+  const notificationIndex = notifications.findIndex(notification => notification.email === email && notification.message === message);
+
+  if (notificationIndex === -1) {
+      return res.status(404).send('Notification not found.');
+  }
+
+  notifications.splice(notificationIndex, 1);
+  res.status(200).send('Notification deleted successfully.');
 });
 
 // Test endpoint

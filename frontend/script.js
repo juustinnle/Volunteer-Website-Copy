@@ -318,12 +318,50 @@ fetch('http://localhost:3000/events')
         .then(response => response.json())
         .then(notifications => {
             const notificationList = document.getElementById('notification-list');
+            const notificationIndicator = document.getElementById('notification-indicator');
             notificationList.innerHTML = '';
+            if (notifications.length > 0) {
+                notificationIndicator.style.display = 'inline';
+            } else {
+                notificationIndicator.style.display = 'none';
+            }
             notifications.forEach(notification => {
-                const notificationItem = document.createElement('a');
-                notificationItem.textContent = notification.message;
+                const notificationItem = document.createElement('div');
+                notificationItem.classList.add('notification-item');
+                notificationItem.innerHTML = `
+                    <span class="notification-message">${notification.message}</span>
+                    <button class="delete-notification" data-email="${notification.email}" data-message="${notification.message}">X</button>
+                `;
                 notificationList.appendChild(notificationItem);
             });
+    
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-notification').forEach(button => {
+                button.addEventListener('click', function() {
+                    const email = button.getAttribute('data-email');
+                    const message = button.getAttribute('data-message');
+                    deleteNotification(email, message);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    
+
+    function deleteNotification(email, message) {
+        fetch(`http://localhost:3000/notifications/${email}/${message}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data);
+            fetchNotifications(email); // Refresh the notifications list
         })
         .catch(error => {
             console.error('Error:', error);

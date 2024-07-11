@@ -181,3 +181,53 @@ thead {
 #matched-event {
     margin-bottom: 30px;
 }
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notification-message {
+    flex-grow: 1;
+    color: black;
+    margin-right: 10px;
+}
+
+.delete-notification {
+    background: none;
+    border: 2px solid red;
+    color: red;
+    border-radius: 50%;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.delete-notification:hover {
+    background-color: red;
+    color: white;
+}
+
+.dropdown-content {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+#notification-indicator {
+    font-size: 1.2em;
+    color: red;
+    vertical-align: middle;
+}
