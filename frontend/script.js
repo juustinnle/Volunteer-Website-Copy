@@ -511,7 +511,6 @@ fetch('http://localhost:3000/events')
             section.style.display = 'none';
         });
         document.getElementById(sectionId).style.display = 'block';
-        saveCurrentSection(sectionId);
     };
 
 
@@ -537,6 +536,26 @@ fetch('http://localhost:3000/events')
             console.error('Error:', error);
         });
     });
+
+    window.fetchMatchingEvents = function() {
+        const volunteerEmail = document.getElementById('volunteer-name').value;
+
+        fetch(`http://localhost:3000/matching-events/${volunteerEmail}`)
+            .then(response => response.json())
+            .then(events => {
+                const matchedEventSelect = document.getElementById('matched-event');
+                matchedEventSelect.innerHTML = '';
+                events.forEach(event => {
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.textContent = event.name;
+                    matchedEventSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching matching events:', error);
+            });
+    };
 
     const email = localStorage.getItem('email');
     if (email) {

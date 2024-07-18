@@ -163,7 +163,56 @@
 
             <label for="required-skills">Required Skills:</label>
             <select id="required-skills" name="required-skills">
-                <!-- Skills options -->
+                <option value="first_aid">First Aid</option>
+                <option value="cpr">CPR</option>
+                <option value="event_planning">Event Planning</option>
+                <option value="public_speaking">Public Speaking</option>
+                <option value="data_entry">Data Entry</option>
+                <option value="social_media_management">Social Media Management</option>
+                <option value="cooking">Cooking</option>
+                <option value="fundraising">Fundraising</option>
+                <option value="childcare">Childcare</option>
+                <option value="tutoring">Tutoring</option>
+                <option value="transportation">Transportation</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="graphic_design">Graphic Design</option>
+                <option value="it_support">IT Support</option>
+                <option value="photography">Photography</option>
+                <option value="mentoring">Mentoring</option>
+                <option value="language_translation">Language Translation</option>
+                <option value="legal_advice">Legal Advice</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="counseling">Counseling</option>
+                <option value="marketing">Marketing</option>
+                <option value="administrative_support">Administrative Support</option>
+                <option value="event_coordination">Event Coordination</option>
+                <option value="volunteer_management">Volunteer Management</option>
+                <option value="community_outreach">Community Outreach</option>
+                <option value="environmental_cleanup">Environmental Cleanup</option>
+                <option value="elder_care">Elder Care</option>
+                <option value="youth_mentoring">Youth Mentoring</option>
+                <option value="disaster_relief">Disaster Relief</option>
+                <option value="animal_care">Animal Care</option>
+                <option value="teaching">Teaching</option>
+                <option value="writing">Writing</option>
+                <option value="editing">Editing</option>
+                <option value="public_relations">Public Relations</option>
+                <option value="logistics">Logistics</option>
+                <option value="project_management">Project Management</option>
+                <option value="research">Research</option>
+                <option value="survey_administration">Survey Administration</option>
+                <option value="food_service">Food Service</option>
+                <option value="event_setup">Event Setup</option>
+                <option value="traffic_control">Traffic Control</option>
+                <option value="medical_support">Medical Support</option>
+                <option value="security">Security</option>
+                <option value="registration">Registration</option>
+                <option value="hospitality">Hospitality</option>
+                <option value="customer_service">Customer Service</option>
+                <option value="donation_management">Donation Management</option>
+                <option value="phone_banking">Phone Banking</option>
+                <option value="translation">Translation</option>
+                <option value="sign_language">Sign Language</option>
             </select>
             <div id="selected-required-skills"></div>
 
@@ -196,8 +245,8 @@
         <h1>Volunteer Matching</h1>
         <form id="volunteer-matching-form">
             <label for="volunteer-name">Volunteer Name:</label>
-            <select id="volunteer-name" name="volunteer-name">
-                <!-- User options will be dynamically added here -->
+            <select id="volunteer-name" name="volunteer-name" onchange="fetchMatchingEvents()">
+                <option value="">Select User</option>
             </select>
     
             <label for="matched-event">Matched Event:</label>
@@ -208,6 +257,7 @@
             <button type="submit">Match Volunteer</button>
         </form>
     </section>
+    
     
     <section id="history" class="content-section">
         <h1>Volunteer History</h1>

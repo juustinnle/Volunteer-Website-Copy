@@ -8,8 +8,11 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-let users = [];
-let events = [];
+let users = [
+];
+
+let events = [
+];
 let notifications = [];
 
 // Registration endpoint
@@ -149,6 +152,22 @@ app.delete('/notifications/:email/:message', (req, res) => {
 
   notifications.splice(notificationIndex, 1);
   res.status(200).send('Notification deleted successfully.');
+});
+
+app.get('/matching-events/:email', (req, res) => {
+  const { email } = req.params;
+  const user = users.find(user => user.email === email);
+  
+  if (!user) {
+      return res.status(404).send('User not found.');
+  }
+
+  const userSkills = user.profile.skills || [];
+  const matchingEvents = events.filter(event => 
+      event.requiredSkills.some(skill => userSkills.includes(skill))
+  );
+
+  res.status(200).json(matchingEvents);
 });
 
 // Test endpoint
