@@ -28,7 +28,7 @@ app.post('/register', (req, res) => {
     return res.status(400).send('User already exists.');
   }
 
-  users.push({ email, password, profile: {} });
+  users.push({ email, password, profile: {}, volunteerHistory: [] });
   res.status(201).send('User registered successfully.');
 });
 
@@ -168,6 +168,52 @@ app.get('/matching-events/:email', (req, res) => {
   );
 
   res.status(200).json(matchingEvents);
+});
+
+// Match volunteer to an event endpoint
+app.post('/match-volunteer', (req, res) => {
+  const { email, eventId } = req.body;
+  
+  const user = users.find(user => user.email === email);
+  const event = events.find(event => event.id === eventId);
+
+  if (!user) {
+    return res.status(404).send('User not found.');
+  }
+  if (!event) {
+    return res.status(404).send('Event not found.');
+  }
+
+  user.volunteerHistory.push({
+    eventId: event.id,
+    eventName: event.name,
+    eventDescription: event.description,
+    location: event.location,
+    requiredSkills: event.requiredSkills,
+    urgency: event.urgency,
+    dates: event.eventDates,
+    status: 'Registered'
+  });
+
+  // Send a notification to the user
+  notifications.push({
+    email: user.email,
+    message: `You have been matched to the event: ${event.name}`
+  });
+
+  res.status(200).send('Volunteer matched to event successfully.');
+});
+
+// Get volunteer history endpoint
+app.get('/history/:email', (req, res) => {
+  const { email } = req.params;
+  const user = users.find(user => user.email === email);
+
+  if (!user) {
+    return res.status(404).send('User not found.');
+  }
+
+  res.status(200).json(user.volunteerHistory);
 });
 
 // Test endpoint
