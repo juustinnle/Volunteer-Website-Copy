@@ -159,13 +159,26 @@ app.get('/matching-events/:email', (req, res) => {
   const user = users.find(user => user.email === email);
   
   if (!user) {
-      return res.status(404).send('User not found.');
+    return res.status(404).send('User not found.');
   }
 
   const userSkills = user.profile.skills || [];
-  const matchingEvents = events.filter(event => 
-      event.requiredSkills.some(skill => userSkills.includes(skill))
-  );
+  const userAvailability = user.profile.availability || [];
+
+  const isDateOverlap = (startDate1, endDate1, startDate2, endDate2) => {
+    return (startDate1 <= endDate2) && (startDate2 <= endDate1);
+  };
+
+  const matchingEvents = events.filter(event => {
+    const eventDates = event.eventDates.map(dates => dates.split(' to '));
+    return event.requiredSkills.some(skill => userSkills.includes(skill)) &&
+           eventDates.some(([eventStart, eventEnd]) => {
+             return userAvailability.some(dateRange => {
+               const [availStart, availEnd] = dateRange.split(' to ');
+               return isDateOverlap(new Date(eventStart), new Date(eventEnd), new Date(availStart), new Date(availEnd));
+             });
+           });
+  });
 
   res.status(200).json(matchingEvents);
 });
@@ -173,7 +186,7 @@ app.get('/matching-events/:email', (req, res) => {
 // Match volunteer to an event endpoint
 app.post('/match-volunteer', (req, res) => {
   const { email, eventId } = req.body;
-  
+
   const user = users.find(user => user.email === email);
   const event = events.find(event => event.id === eventId);
 
@@ -182,6 +195,11 @@ app.post('/match-volunteer', (req, res) => {
   }
   if (!event) {
     return res.status(404).send('Event not found.');
+  }
+
+  const alreadyMatched = user.volunteerHistory.some(history => history.eventId === eventId);
+  if (alreadyMatched) {
+    return res.status(400).send('Volunteer already matched to this event.');
   }
 
   user.volunteerHistory.push({
