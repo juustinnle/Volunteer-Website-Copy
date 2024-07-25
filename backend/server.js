@@ -1,66 +1,56 @@
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-
 const express = require('express');
 const bodyParser = require('body-parser');
-const cors = require('cors');
+const bcrypt = require('bcrypt');
+const pool = require('./db'); // Ensure this points to your database connection file
+require('dotenv').config();
 
 const app = express();
-const port = 3000;
-
 app.use(bodyParser.json());
-app.use(cors());
 
-let events = [
-];
-let notifications = [];
-
-// Registration endpoint
+// User Registration Endpoint
 app.post('/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    console.log('Received registration request for:', email); // Add this line
+    const { username, password, full_name, address, city, state, zipcode, skills, preferences, availability } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+    // Input validation
+    if (!username || !password || !full_name || !address || !city || !state || !zipcode) {
+        return res.status(400).send('Missing required fields');
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Password hashed successfully'); // Add this line
-
-    const connection = await pool.getConnection();
-    await connection.beginTransaction();
 
     try {
-      console.log('Inserting into UserCredentials'); // Add this line
-      const [result] = await connection.execute(
-        'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
-        [email, hashedPassword]
-      );
-      const userId = result.insertId;
-      console.log('UserCredentials inserted, userId:', userId); // Add this line
+        const connection = await pool.getConnection();
 
-      console.log('Inserting into UserProfile'); // Add this line
-      await connection.execute(
-        'INSERT INTO UserProfile (user_id) VALUES (?)',
-        [userId]
-      );
-      console.log('UserProfile inserted'); // Add this line
+        // Check if username already exists
+        const [existingUser] = await connection.execute('SELECT * FROM UserCredentials WHERE username = ?', [username]);
+        if (existingUser.length > 0) {
+            connection.release();
+            return res.status(400).send('Username already exists');
+        }
 
-      await connection.commit();
-      console.log('Transaction committed'); // Add this line
-      res.status(201).json({ message: 'User registered successfully' });
+        // Encrypt password
+        const password_hash = await bcrypt.hash(password, 10);
+
+        // Insert user credentials
+        const [result] = await connection.execute('INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)', [username, password_hash]);
+        const user_id = result.insertId;
+
+        // Insert user profile
+        await connection.execute(
+            'INSERT INTO UserProfile (user_id, full_name, address, city, state, zipcode, skills, preferences, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [user_id, full_name, address, city, state, zipcode, skills, preferences, availability]
+        );
+
+        connection.release();
+        res.status(201).send('User registered successfully');
     } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
+        console.error('Error:', error);
+        res.status(500).send('Internal Server Error');
     }
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed', details: error.message });
-  }
 });
+
+app.listen(3000, () => {
+    console.log('Server running on port 3000');
+});
+
 // Login endpoint
 app.post('/login', async (req, res) => {
   try {
