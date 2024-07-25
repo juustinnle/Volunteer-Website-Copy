@@ -5,7 +5,7 @@ const cors = require('cors');
 const app = express();
 const port = 3000;
 
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors());
 
 const fs = require('fs');
@@ -24,13 +24,19 @@ const db = require('./db');
 // Registration endpoint
 app.post('/register', async (req, res) => {
   logToFile('==== REGISTRATION ROUTE ACCESSED ====');
+  logToFile('Request body: ' + JSON.stringify(req.body));
+
   try {
     const { email, password, fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
     
+    if (!email || !password) {
+      logToFile('Registration failed: Email or password missing');
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
     logToFile('Received registration request for: ' + email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
     logToFile('Password hashed successfully');
 
     const connection = await db.getConnection();
@@ -48,7 +54,10 @@ app.post('/register', async (req, res) => {
       logToFile('Inserting into UserProfile');
       await connection.execute(
         'INSERT INTO UserProfile (user_id, full_name, address, city, state, zipcode, skills, preferences, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [userId, fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability)]
+        [userId, fullName || null, address || null, city || null, state || null, zipcode || null, 
+         skills ? JSON.stringify(skills) : null, 
+         preferences ? JSON.stringify(preferences) : null, 
+         availability ? JSON.stringify(availability) : null]
       );
       logToFile('UserProfile inserted');
 
@@ -57,6 +66,10 @@ app.post('/register', async (req, res) => {
       res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
+      logToFile('Database error: ' + error.message);
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'User already exists.' });
+      }
       throw error;
     } finally {
       connection.release();
