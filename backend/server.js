@@ -12,10 +12,11 @@ app.post('/register', async (req, res) => {
     const { username, password, full_name, address, city, state, zipcode, skills, preferences, availability } = req.body;
 
     // Log received request body for debugging
-    console.log('Request body:', req.body);
+    console.log('Received request body:', req.body);
 
     // Input validation
     if (!username || !password || !full_name || !address || !city || !state || !zipcode) {
+        console.log('Validation failed. Missing required fields.');
         return res.status(400).send('Missing required fields');
     }
 
@@ -25,6 +26,7 @@ app.post('/register', async (req, res) => {
         // Check if username already exists
         const [existingUser] = await connection.execute('SELECT * FROM UserCredentials WHERE username = ?', [username]);
         if (existingUser.length > 0) {
+            console.log('Username already exists');
             connection.release();
             return res.status(400).send('Username already exists');
         }
@@ -43,6 +45,7 @@ app.post('/register', async (req, res) => {
         );
 
         connection.release();
+        console.log('User registered successfully');
         res.status(201).send('User registered successfully');
     } catch (error) {
         console.error('Error:', error);
@@ -53,7 +56,6 @@ app.post('/register', async (req, res) => {
 app.listen(3000, () => {
     console.log('Server running on port 3000');
 });
-
 
 // Login endpoint
 app.post('/login', async (req, res) => {
