@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -11,8 +10,17 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-let events = [
-];
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'Ftm5096!',
+  database: 'volunteer_app',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+let events = [];
 let notifications = [];
 
 // Registration endpoint
@@ -31,7 +39,7 @@ app.post('/register', async (req, res) => {
 
     try {
       const [result] = await connection.execute(
-        'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
+        'INSERT INTO UserCredentials (email, password_hash) VALUES (?, ?)',
         [email, hashedPassword]
       );
       const userId = result.insertId;
@@ -68,7 +76,7 @@ app.post('/login', async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      'SELECT * FROM UserCredentials WHERE username = ?',
+      'SELECT * FROM UserCredentials WHERE email = ?',
       [email]
     );
 
@@ -95,7 +103,7 @@ app.get('/profile/:email', async (req, res) => {
   try {
     const { email } = req.params;
     const [profiles] = await pool.execute(
-      'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
+      'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.email = ?',
       [email]
     );
     if (profiles.length === 0) {
@@ -114,7 +122,7 @@ app.put('/profile/:email', async (req, res) => {
     const { email } = req.params;
     const { fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
     const [result] = await pool.execute(
-      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
+      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.email = ?',
       [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), email]
     );
     if (result.affectedRows === 0) {
