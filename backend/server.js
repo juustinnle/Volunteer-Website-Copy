@@ -26,21 +26,21 @@ let notifications = [];
 // Registration endpoint
 app.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).send('Email and password are required.');
+    if (!username || !password) {
+      return res.status(400).send('Username and password are required.');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
     try {
       const [result] = await connection.execute(
-        'INSERT INTO UserCredentials (email, password_hash) VALUES (?, ?)',
-        [email, hashedPassword]
+        'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
+        [username, hashedPassword]
       );
       const userId = result.insertId;
 
@@ -69,26 +69,26 @@ app.post('/register', async (req, res) => {
 // Login endpoint
 app.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).send('Email and password are required.');
+    if (!username || !password) {
+      return res.status(400).send('Username and password are required.');
     }
 
     const [users] = await pool.execute(
-      'SELECT * FROM UserCredentials WHERE email = ?',
-      [email]
+      'SELECT * FROM UserCredentials WHERE username = ?',
+      [username]
     );
 
     if (users.length === 0) {
-      return res.status(401).send('Invalid email or password.');
+      return res.status(401).send('Invalid username or password.');
     }
 
     const user = users[0];
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
-      return res.status(401).send('Invalid email or password.');
+      return res.status(401).send('Invalid username or password.');
     }
 
     res.status(200).send('Login successful.');
@@ -99,12 +99,12 @@ app.post('/login', async (req, res) => {
 });
 
 // Get user profile endpoint
-app.get('/profile/:email', async (req, res) => {
+app.get('/profile/:username', async (req, res) => {
   try {
-    const { email } = req.params;
+    const { username } = req.params;
     const [profiles] = await pool.execute(
-      'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.email = ?',
-      [email]
+      'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
+      [username]
     );
     if (profiles.length === 0) {
       return res.status(404).send('User not found.');
@@ -117,13 +117,13 @@ app.get('/profile/:email', async (req, res) => {
 });
 
 // Update user profile endpoint
-app.put('/profile/:email', async (req, res) => {
+app.put('/profile/:username', async (req, res) => {
   try {
-    const { email } = req.params;
+    const { username } = req.params;
     const { fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
     const [result] = await pool.execute(
-      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.email = ?',
-      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), email]
+      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
+      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), username]
     );
     if (result.affectedRows === 0) {
       return res.status(404).send('User not found.');
@@ -157,7 +157,7 @@ app.post('/events', (req, res) => {
   // Add notifications for all users (assuming users array is defined and populated)
   users.forEach(user => {
     notifications.push({
-      email: user.email,
+      email: user.username,
       message: `New event: ${name}`
     });
   });
@@ -185,20 +185,20 @@ app.delete('/events/:id', (req, res) => {
 
 // Create notification endpoint
 app.post('/notifications', (req, res) => {
-  const { email, message } = req.body;
+  const { username, message } = req.body;
 
-  if (!email || !message) {
-    return res.status(400).send('Email and message are required.');
+  if (!username || !message) {
+    return res.status(400).send('Username and message are required.');
   }
 
-  notifications.push({ email, message });
+  notifications.push({ username, message });
   res.status(201).send('Notification created successfully.');
 });
 
 // Get notifications for a user endpoint
-app.get('/notifications/:email', (req, res) => {
-  const { email } = req.params;
-  const userNotifications = notifications.filter(notification => notification.email === email);
+app.get('/notifications/:username', (req, res) => {
+  const { username } = req.params;
+  const userNotifications = notifications.filter(notification => notification.username === username);
   res.status(200).json(userNotifications);
 });
 
@@ -208,9 +208,9 @@ app.get('/users', (req, res) => {
 });
 
 // Delete notification endpoint
-app.delete('/notifications/:email/:message', (req, res) => {
-  const { email, message } = req.params;
-  const notificationIndex = notifications.findIndex(notification => notification.email === email && notification.message === message);
+app.delete('/notifications/:username/:message', (req, res) => {
+  const { username, message } = req.params;
+  const notificationIndex = notifications.findIndex(notification => notification.username === username && notification.message === message);
 
   if (notificationIndex === -1) {
       return res.status(404).send('Notification not found.');
@@ -220,9 +220,9 @@ app.delete('/notifications/:email/:message', (req, res) => {
   res.status(200).send('Notification deleted successfully.');
 });
 
-app.get('/matching-events/:email', (req, res) => {
-  const { email } = req.params;
-  const user = users.find(user => user.email === email);
+app.get('/matching-events/:username', (req, res) => {
+  const { username } = req.params;
+  const user = users.find(user => user.username === username);
   
   if (!user) {
     return res.status(404).send('User not found.');
@@ -251,9 +251,9 @@ app.get('/matching-events/:email', (req, res) => {
 
 // Match volunteer to an event endpoint
 app.post('/match-volunteer', (req, res) => {
-  const { email, eventId } = req.body;
+  const { username, eventId } = req.body;
 
-  const user = users.find(user => user.email === email);
+  const user = users.find(user => user.username === username);
   const event = events.find(event => event.id === eventId);
 
   if (!user) {
@@ -281,7 +281,7 @@ app.post('/match-volunteer', (req, res) => {
 
   // Send a notification to the user
   notifications.push({
-    email: user.email,
+    username: user.username,
     message: `You have been matched to the event: ${event.name}`
   });
 
@@ -289,9 +289,9 @@ app.post('/match-volunteer', (req, res) => {
 });
 
 // Get volunteer history endpoint
-app.get('/history/:email', (req, res) => {
-  const { email } = req.params;
-  const user = users.find(user => user.email === email);
+app.get('/history/:username', (req, res) => {
+  const { username } = req.params;
+  const user = users.find(user => user.username === username);
 
   if (!user) {
     return res.status(404).send('User not found.');
