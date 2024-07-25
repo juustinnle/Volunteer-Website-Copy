@@ -154,6 +154,7 @@ app.post('/events', (req, res) => {
   };
   events.push(newEvent);
 
+  // Add notifications for all users (assuming users array is defined and populated)
   users.forEach(user => {
     notifications.push({
       email: user.email,
