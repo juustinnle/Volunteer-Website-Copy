@@ -1,5 +1,3 @@
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -10,85 +8,88 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Ftm5096!',
-  database: 'volunteer_app',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const fs = require('fs');
 
-let events = [];
+function logToFile(message) {
+  fs.appendFileSync('server.log', message + '\n');
+}
+
+let events = [
+];
 let notifications = [];
+
+const bcrypt = require('bcrypt');
+const db = require('./db');
 
 // Registration endpoint
 app.post('/register', async (req, res) => {
+  logToFile('==== REGISTRATION ROUTE ACCESSED ====');
   try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).send('Username and password are required.');
-    }
+    const { email, password, fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
+    
+    logToFile('Received registration request for: ' + email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    logToFile('Password hashed successfully');
 
-    const connection = await pool.getConnection();
+    const connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
-      const [result] = await connection.execute(
+      logToFile('Inserting into UserCredentials');
+      const [credResult] = await connection.execute(
         'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
-        [username, hashedPassword]
+        [email, hashedPassword]
       );
-      const userId = result.insertId;
+      const userId = credResult.insertId;
+      logToFile('UserCredentials inserted, userId: ' + userId);
 
+      logToFile('Inserting into UserProfile');
       await connection.execute(
-        'INSERT INTO UserProfile (user_id) VALUES (?)',
-        [userId]
+        'INSERT INTO UserProfile (user_id, full_name, address, city, state, zipcode, skills, preferences, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability)]
       );
+      logToFile('UserProfile inserted');
 
       await connection.commit();
-      res.status(201).send('User registered successfully.');
+      logToFile('Transaction committed');
+      res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
-      if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(400).send('User already exists.');
-      }
       throw error;
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Registration failed.');
+    logToFile('Registration error: ' + error.message);
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
 // Login endpoint
 app.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).send('Username and password are required.');
+    if (!email || !password) {
+      return res.status(400).send('Email and password are required.');
     }
 
-    const [users] = await pool.execute(
+    const [users] = await db.execute(
       'SELECT * FROM UserCredentials WHERE username = ?',
-      [username]
+      [email]
     );
 
     if (users.length === 0) {
-      return res.status(401).send('Invalid username or password.');
+      return res.status(401).send('Invalid email or password.');
     }
 
     const user = users[0];
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
-      return res.status(401).send('Invalid username or password.');
+      return res.status(401).send('Invalid email or password.');
     }
 
     res.status(200).send('Login successful.');
@@ -98,32 +99,30 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Get user profile endpoint
-app.get('/profile/:username', async (req, res) => {
+app.get('/profile/:email', async (req, res) => {
   try {
-    const { username } = req.params;
-    const [profiles] = await pool.execute(
+    const { email } = req.params;
+    const [users] = await db.execute(
       'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
-      [username]
+      [email]
     );
-    if (profiles.length === 0) {
+    if (users.length === 0) {
       return res.status(404).send('User not found.');
     }
-    res.status(200).json(profiles[0]);
+    res.status(200).json(users[0]);
   } catch (error) {
     console.error(error);
     res.status(500).send('Failed to retrieve profile.');
   }
 });
 
-// Update user profile endpoint
-app.put('/profile/:username', async (req, res) => {
+app.put('/profile/:email', async (req, res) => {
   try {
-    const { username } = req.params;
+    const { email } = req.params;
     const { fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
-    const [result] = await pool.execute(
+    const [result] = await db.execute(
       'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
-      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), username]
+      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), email]
     );
     if (result.affectedRows === 0) {
       return res.status(404).send('User not found.');
@@ -154,10 +153,9 @@ app.post('/events', (req, res) => {
   };
   events.push(newEvent);
 
-  // Add notifications for all users (assuming users array is defined and populated)
   users.forEach(user => {
     notifications.push({
-      email: user.username,
+      email: user.email,
       message: `New event: ${name}`
     });
   });
@@ -185,20 +183,20 @@ app.delete('/events/:id', (req, res) => {
 
 // Create notification endpoint
 app.post('/notifications', (req, res) => {
-  const { username, message } = req.body;
+  const { email, message } = req.body;
 
-  if (!username || !message) {
-    return res.status(400).send('Username and message are required.');
+  if (!email || !message) {
+    return res.status(400).send('Email and message are required.');
   }
 
-  notifications.push({ username, message });
+  notifications.push({ email, message });
   res.status(201).send('Notification created successfully.');
 });
 
 // Get notifications for a user endpoint
-app.get('/notifications/:username', (req, res) => {
-  const { username } = req.params;
-  const userNotifications = notifications.filter(notification => notification.username === username);
+app.get('/notifications/:email', (req, res) => {
+  const { email } = req.params;
+  const userNotifications = notifications.filter(notification => notification.email === email);
   res.status(200).json(userNotifications);
 });
 
@@ -208,9 +206,9 @@ app.get('/users', (req, res) => {
 });
 
 // Delete notification endpoint
-app.delete('/notifications/:username/:message', (req, res) => {
-  const { username, message } = req.params;
-  const notificationIndex = notifications.findIndex(notification => notification.username === username && notification.message === message);
+app.delete('/notifications/:email/:message', (req, res) => {
+  const { email, message } = req.params;
+  const notificationIndex = notifications.findIndex(notification => notification.email === email && notification.message === message);
 
   if (notificationIndex === -1) {
       return res.status(404).send('Notification not found.');
@@ -220,9 +218,9 @@ app.delete('/notifications/:username/:message', (req, res) => {
   res.status(200).send('Notification deleted successfully.');
 });
 
-app.get('/matching-events/:username', (req, res) => {
-  const { username } = req.params;
-  const user = users.find(user => user.username === username);
+app.get('/matching-events/:email', (req, res) => {
+  const { email } = req.params;
+  const user = users.find(user => user.email === email);
   
   if (!user) {
     return res.status(404).send('User not found.');
@@ -251,9 +249,9 @@ app.get('/matching-events/:username', (req, res) => {
 
 // Match volunteer to an event endpoint
 app.post('/match-volunteer', (req, res) => {
-  const { username, eventId } = req.body;
+  const { email, eventId } = req.body;
 
-  const user = users.find(user => user.username === username);
+  const user = users.find(user => user.email === email);
   const event = events.find(event => event.id === eventId);
 
   if (!user) {
@@ -281,7 +279,7 @@ app.post('/match-volunteer', (req, res) => {
 
   // Send a notification to the user
   notifications.push({
-    username: user.username,
+    email: user.email,
     message: `You have been matched to the event: ${event.name}`
   });
 
@@ -289,9 +287,9 @@ app.post('/match-volunteer', (req, res) => {
 });
 
 // Get volunteer history endpoint
-app.get('/history/:username', (req, res) => {
-  const { username } = req.params;
-  const user = users.find(user => user.username === username);
+app.get('/history/:email', (req, res) => {
+  const { email } = req.params;
+  const user = users.find(user => user.email === email);
 
   if (!user) {
     return res.status(404).send('User not found.');
