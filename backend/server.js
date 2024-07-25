@@ -16,46 +16,96 @@ let events = [
 let notifications = [];
 
 // Registration endpoint
-app.post('/register', (req, res) => {
-  const { email, password } = req.body;
+app.post('/register', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).send('Email and password are required.');
+    if (!email || !password) {
+      return res.status(400).send('Email and password are required.');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      const [result] = await connection.execute(
+        'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
+        [email, hashedPassword]
+      );
+      const userId = result.insertId;
+
+      await connection.execute(
+        'INSERT INTO UserProfile (user_id) VALUES (?)',
+        [userId]
+      );
+
+      await connection.commit();
+      res.status(201).send('User registered successfully.');
+    } catch (error) {
+      await connection.rollback();
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(400).send('User already exists.');
+      }
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Registration failed.');
   }
-
-  const userExists = users.some(user => user.email === email);
-  if (userExists) {
-    return res.status(400).send('User already exists.');
-  }
-
-  users.push({ email, password, profile: {}, volunteerHistory: [] });
-  res.status(201).send('User registered successfully.');
 });
-
 // Login endpoint
-app.post('/login', (req, res) => {
-  const { email, password } = req.body;
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).send('Email and password are required.');
+    if (!email || !password) {
+      return res.status(400).send('Email and password are required.');
+    }
+
+    const [users] = await pool.execute(
+      'SELECT * FROM UserCredentials WHERE username = ?',
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).send('Invalid email or password.');
+    }
+
+    const user = users[0];
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
+    if (!isPasswordValid) {
+      return res.status(401).send('Invalid email or password.');
+    }
+
+    res.status(200).send('Login successful.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Login failed.');
   }
-
-  const user = users.find(user => user.email === email && user.password === password);
-  if (!user) {
-    return res.status(401).send('Invalid email or password.');
-  }
-
-  res.status(200).send('Login successful.');
 });
 
 // Get user profile endpoint
-app.get('/profile/:email', (req, res) => {
-  const { email } = req.params;
-  const user = users.find(user => user.email === email);
-  if (!user) {
-    return res.status(404).send('User not found.');
+app.put('/profile/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
+    const [result] = await pool.execute(
+      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
+      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), email]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).send('User not found.');
+    }
+    res.status(200).send('Profile updated successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to update profile.');
   }
-  res.status(200).json(user.profile);
 });
 
 // Update user profile endpoint
