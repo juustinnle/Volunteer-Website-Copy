@@ -21,30 +21,35 @@ const db = require('./db');
 app.post('/register', async (req, res) => {
   try {
     const { email, password, fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).send('Email and password are required.');
-    }
+    
+    console.log('Received registration request for:', email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    console.log('Password hashed successfully');
+
     const connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
+      console.log('Inserting into UserCredentials');
       const [credResult] = await connection.execute(
         'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
         [email, hashedPassword]
       );
       const userId = credResult.insertId;
+      console.log('UserCredentials inserted, userId:', userId);
 
+      console.log('Inserting into UserProfile');
       await connection.execute(
         'INSERT INTO UserProfile (user_id, full_name, address, city, state, zipcode, skills, preferences, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [userId, fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability)]
       );
+      console.log('UserProfile inserted');
 
       await connection.commit();
-      res.status(201).send('User registered successfully.');
+      console.log('Transaction committed');
+      res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -52,8 +57,8 @@ app.post('/register', async (req, res) => {
       connection.release();
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Registration failed.');
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
