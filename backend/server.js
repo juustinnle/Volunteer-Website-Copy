@@ -19,42 +19,46 @@ let notifications = [];
 app.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Received registration request for:', email); // Add this line
 
     if (!email || !password) {
-      return res.status(400).send('Email and password are required.');
+      return res.status(400).json({ error: 'Email and password are required.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+    console.log('Password hashed successfully'); // Add this line
+
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
     try {
+      console.log('Inserting into UserCredentials'); // Add this line
       const [result] = await connection.execute(
         'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
         [email, hashedPassword]
       );
       const userId = result.insertId;
+      console.log('UserCredentials inserted, userId:', userId); // Add this line
 
+      console.log('Inserting into UserProfile'); // Add this line
       await connection.execute(
         'INSERT INTO UserProfile (user_id) VALUES (?)',
         [userId]
       );
+      console.log('UserProfile inserted'); // Add this line
 
       await connection.commit();
-      res.status(201).send('User registered successfully.');
+      console.log('Transaction committed'); // Add this line
+      res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
-      if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(409).send('User already exists.'); // 409 Conflict
-      }
       throw error;
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Registration failed.');
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 // Login endpoint
