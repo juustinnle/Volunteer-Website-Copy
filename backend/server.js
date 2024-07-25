@@ -41,12 +41,18 @@ app.post('/register', async (req, res) => {
         // Encrypt password
         const password_hash = await bcrypt.hash(password, 10);
 
+        // Log the parameters to ensure they are not undefined
+        console.log('User credentials to insert:', { username, password_hash });
+
         // Insert user credentials
         const [result] = await connection.execute('INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)', [username, password_hash]);
         const user_id = result.insertId;
 
         // Prepare user profile data, handling undefined parameters
         const userProfileParams = handleUndefinedParams([user_id, full_name, address, city, state, zipcode, skills, preferences, availability]);
+
+        // Log the parameters to ensure they are not undefined
+        console.log('User profile to insert:', userProfileParams);
 
         // Insert user profile
         await connection.execute(
@@ -103,6 +109,9 @@ app.put('/profile/:username', async (req, res) => {
 
         // Prepare user profile data, handling undefined parameters
         const userProfileParams = handleUndefinedParams([full_name, address, city, state, zipcode, skills, preferences, availability, username]);
+
+        // Log the parameters to ensure they are not undefined
+        console.log('User profile to update:', userProfileParams);
 
         const [result] = await pool.execute(
             'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.ID SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
