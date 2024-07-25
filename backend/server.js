@@ -5,11 +5,14 @@ const pool = require('./db'); // Ensure this points to your database connection 
 require('dotenv').config();
 
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // Middleware to parse JSON bodies
 
 // User Registration Endpoint
 app.post('/register', async (req, res) => {
     const { username, password, full_name, address, city, state, zipcode, skills, preferences, availability } = req.body;
+
+    // Log received request body for debugging
+    console.log('Request body:', req.body);
 
     // Input validation
     if (!username || !password || !full_name || !address || !city || !state || !zipcode) {
@@ -50,6 +53,7 @@ app.post('/register', async (req, res) => {
 app.listen(3000, () => {
     console.log('Server running on port 3000');
 });
+
 
 // Login endpoint
 app.post('/login', async (req, res) => {
