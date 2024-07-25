@@ -46,7 +46,7 @@ app.post('/register', async (req, res) => {
     } catch (error) {
       await connection.rollback();
       if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(400).send('User already exists.');
+        return res.status(409).send('User already exists.'); // 409 Conflict
       }
       throw error;
     } finally {
