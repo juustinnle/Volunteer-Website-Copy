@@ -29,39 +29,31 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    console.log('Attempting to hash password');
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Password hashed successfully');
 
     const connection = await db.getConnection();
-    console.log('Database connection established');
     
     try {
       await connection.beginTransaction();
-      console.log('Transaction begun');
 
-      console.log('Inserting into UserCredentials');
       const [credResult] = await connection.execute(
         'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
         [email, hashedPassword]
       );
       const userId = credResult.insertId;
-      console.log('UserCredentials inserted, userId:', userId);
 
-      console.log('Inserting into UserProfile');
       await connection.execute(
         'INSERT INTO UserProfile (user_id) VALUES (?)',
         [userId]
       );
-      console.log('UserProfile inserted');
 
       await connection.commit();
-      console.log('Transaction committed');
+      console.log('User registered successfully');
       res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
       console.error('Database error:', error);
-      throw error;
+      res.status(500).json({ error: 'Registration failed', details: error.message });
     } finally {
       connection.release();
     }
