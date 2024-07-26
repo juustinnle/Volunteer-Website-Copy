@@ -154,29 +154,36 @@ document.addEventListener('DOMContentLoaded', function() {
   
     checkVolunteerHistory();
   
-    const registerForm = document.getElementById('register-form');
-    registerForm.addEventListener('submit', function(event) {
-      event.preventDefault();
-  
-      const email = document.getElementById('reg-email').value;
-      const password = document.getElementById('reg-password').value;
-  
-      fetch('http://localhost:3000/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      })
-      .then(response => response.text())
-      .then(data => {
-        alert(data);
-        location.reload(); // Refresh the page
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-    });
+   const registerForm = document.getElementById('register-form');
+registerForm.addEventListener('submit', function(event) {
+  event.preventDefault();
+
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+
+  console.log('Sending registration request:', { email, password });
+
+  fetch('http://localhost:3000/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, password })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Registration response:', data);
+    if (data.message) {
+      alert(data.message);
+    } else if (data.error) {
+      alert(data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Registration error:', error);
+    alert('An error occurred during registration');
+  });
+});
   
     const loginForm = document.getElementById('login-form');
     loginForm.addEventListener('submit', function(event) {
