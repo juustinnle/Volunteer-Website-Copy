@@ -14,10 +14,6 @@ function logToFile(message) {
   fs.appendFileSync('server.log', message + '\n');
 }
 
-let events = [
-];
-let notifications = [];
-
 const bcrypt = require('bcrypt');
 const db = require('./db');
 
@@ -148,167 +144,204 @@ app.put('/profile/:email', async (req, res) => {
 });
 
 // Create event endpoint
-app.post('/events', (req, res) => {
-  const { name, description, location, requiredSkills, urgency, eventDates } = req.body;
+app.post('/events', async (req, res) => {
+  try {
+    const { name, description, location, requiredSkills, urgency, eventDates } = req.body;
 
-  if (!name || !description || !location || !requiredSkills || !urgency || !eventDates) {
-    return res.status(400).send('All fields are required.');
+    if (!name || !description || !location || !requiredSkills || !urgency || !eventDates) {
+      return res.status(400).send('All fields are required.');
+    }
+
+    const [result] = await db.execute(
+      'INSERT INTO Events (name, description, location, required_skills, urgency, event_dates) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, description, location, JSON.stringify(requiredSkills), urgency, JSON.stringify(eventDates)]
+    );
+
+    res.status(201).send('Event created successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to create event.');
   }
-
-  const newEvent = {
-    id: `${Date.now()}`,
-    name,
-    description,
-    location,
-    requiredSkills,
-    urgency,
-    eventDates
-  };
-  events.push(newEvent);
-
-  users.forEach(user => {
-    notifications.push({
-      email: user.email,
-      message: `New event: ${name}`
-    });
-  });
-
-  res.status(201).send('Event created successfully.');
 });
 
 // Get all events endpoint
-app.get('/events', (req, res) => {
-  res.status(200).json(events);
+app.get('/events', async (req, res) => {
+  try {
+    const [events] = await db.execute('SELECT * FROM Events');
+    res.status(200).json(events);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to retrieve events.');
+  }
 });
 
 // Delete event endpoint
-app.delete('/events/:id', (req, res) => {
-  const { id } = req.params;
-  const eventIndex = events.findIndex(event => event.id === id);
-
-  if (eventIndex === -1) {
-    return res.status(404).send('Event not found.');
+app.delete('/events/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.execute('DELETE FROM Events WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).send('Event not found.');
+    }
+    res.status(200).send('Event deleted successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to delete event.');
   }
-
-  events.splice(eventIndex, 1);
-  res.status(200).send('Event deleted successfully.');
 });
-
 // Create notification endpoint
-app.post('/notifications', (req, res) => {
-  const { email, message } = req.body;
+app.post('/notifications', async (req, res) => {
+  try {
+    const { email, message } = req.body;
 
-  if (!email || !message) {
-    return res.status(400).send('Email and message are required.');
+    if (!email || !message) {
+      return res.status(400).send('Email and message are required.');
+    }
+
+    await db.execute('INSERT INTO Notifications (email, message) VALUES (?, ?)', [email, message]);
+    res.status(201).send('Notification created successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to create notification.');
   }
-
-  notifications.push({ email, message });
-  res.status(201).send('Notification created successfully.');
 });
 
 // Get notifications for a user endpoint
-app.get('/notifications/:email', (req, res) => {
-  const { email } = req.params;
-  const userNotifications = notifications.filter(notification => notification.email === email);
-  res.status(200).json(userNotifications);
-});
-
-// Get all users endpoint
-app.get('/users', (req, res) => {
-  res.status(200).json(users);
+app.get('/notifications/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const [notifications] = await db.execute('SELECT * FROM Notifications WHERE email = ?', [email]);
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to retrieve notifications.');
+  }
 });
 
 // Delete notification endpoint
-app.delete('/notifications/:email/:message', (req, res) => {
-  const { email, message } = req.params;
-  const notificationIndex = notifications.findIndex(notification => notification.email === email && notification.message === message);
-
-  if (notificationIndex === -1) {
+app.delete('/notifications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.execute('DELETE FROM Notifications WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
       return res.status(404).send('Notification not found.');
+    }
+    res.status(200).send('Notification deleted successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to delete notification.');
   }
-
-  notifications.splice(notificationIndex, 1);
-  res.status(200).send('Notification deleted successfully.');
 });
 
-app.get('/matching-events/:email', (req, res) => {
-  const { email } = req.params;
-  const user = users.find(user => user.email === email);
-  
-  if (!user) {
-    return res.status(404).send('User not found.');
+// Get all users endpoint
+app.get('/users', async (req, res) => {
+  try {
+    const [users] = await db.execute('SELECT username FROM UserCredentials');
+    res.status(200).json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to retrieve users.');
   }
+});
 
-  const userSkills = user.profile.skills || [];
-  const userAvailability = user.profile.availability || [];
-
-  const isDateOverlap = (startDate1, endDate1, startDate2, endDate2) => {
-    return (startDate1 <= endDate2) && (startDate2 <= endDate1);
-  };
-
-  const matchingEvents = events.filter(event => {
-    const eventDates = event.eventDates.map(dates => dates.split(' to '));
-    return event.requiredSkills.some(skill => userSkills.includes(skill)) &&
-           eventDates.some(([eventStart, eventEnd]) => {
-             return userAvailability.some(dateRange => {
-               const [availStart, availEnd] = dateRange.split(' to ');
-               return isDateOverlap(new Date(eventStart), new Date(eventEnd), new Date(availStart), new Date(availEnd));
+app.get('/matching-events/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Get user skills and availability
+    const [users] = await db.execute(
+      'SELECT skills, availability FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
+      [email]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).send('User not found.');
+    }
+    
+    const user = users[0];
+    const userSkills = JSON.parse(user.skills || '[]');
+    const userAvailability = JSON.parse(user.availability || '[]');
+    
+    // Get all events
+    const [events] = await db.execute('SELECT * FROM Events');
+    
+    // Filter matching events
+    const matchingEvents = events.filter(event => {
+      const eventSkills = JSON.parse(event.required_skills);
+      const eventDates = JSON.parse(event.event_dates);
+      
+      return eventSkills.some(skill => userSkills.includes(skill)) &&
+             eventDates.some(eventDate => {
+               return userAvailability.some(availDate => {
+                 return isDateOverlap(new Date(eventDate.start), new Date(eventDate.end), 
+                                      new Date(availDate.start), new Date(availDate.end));
+               });
              });
-           });
-  });
-
-  res.status(200).json(matchingEvents);
+    });
+    
+    res.status(200).json(matchingEvents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to retrieve matching events.');
+  }
 });
 
-// Match volunteer to an event endpoint
-app.post('/match-volunteer', (req, res) => {
-  const { email, eventId } = req.body;
+function isDateOverlap(startDate1, endDate1, startDate2, endDate2) {
+  return (startDate1 <= endDate2) && (startDate2 <= endDate1);
+}
 
-  const user = users.find(user => user.email === email);
-  const event = events.find(event => event.id === eventId);
+app.post('/match-volunteer', async (req, res) => {
+  try {
+    const { email, eventId } = req.body;
 
-  if (!user) {
-    return res.status(404).send('User not found.');
+    // Check if user exists
+    const [users] = await db.execute('SELECT user_id FROM UserCredentials WHERE username = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).send('User not found.');
+    }
+    const userId = users[0].user_id;
+
+    // Check if event exists
+    const [events] = await db.execute('SELECT * FROM Events WHERE id = ?', [eventId]);
+    if (events.length === 0) {
+      return res.status(404).send('Event not found.');
+    }
+    const event = events[0];
+
+    // Check if already matched
+    const [matches] = await db.execute('SELECT * FROM VolunteerHistory WHERE user_id = ? AND event_id = ?', [userId, eventId]);
+    if (matches.length > 0) {
+      return res.status(400).send('Volunteer already matched to this event.');
+    }
+
+    // Create match
+    await db.execute(
+      'INSERT INTO VolunteerHistory (user_id, event_id, event_name, event_description, location, required_skills, urgency, dates, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, eventId, event.name, event.description, event.location, event.required_skills, event.urgency, event.event_dates, 'Registered']
+    );
+
+    // Create notification
+    await db.execute('INSERT INTO Notifications (email, message) VALUES (?, ?)', [email, `You have been matched to the event: ${event.name}`]);
+
+    res.status(200).send('Volunteer matched to event successfully.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to match volunteer to event.');
   }
-  if (!event) {
-    return res.status(404).send('Event not found.');
-  }
-
-  const alreadyMatched = user.volunteerHistory.some(history => history.eventId === eventId);
-  if (alreadyMatched) {
-    return res.status(400).send('Volunteer already matched to this event.');
-  }
-
-  user.volunteerHistory.push({
-    eventId: event.id,
-    eventName: event.name,
-    eventDescription: event.description,
-    location: event.location,
-    requiredSkills: event.requiredSkills,
-    urgency: event.urgency,
-    dates: event.eventDates,
-    status: 'Registered'
-  });
-
-  // Send a notification to the user
-  notifications.push({
-    email: user.email,
-    message: `You have been matched to the event: ${event.name}`
-  });
-
-  res.status(200).send('Volunteer matched to event successfully.');
 });
 
-// Get volunteer history endpoint
-app.get('/history/:email', (req, res) => {
-  const { email } = req.params;
-  const user = users.find(user => user.email === email);
-
-  if (!user) {
-    return res.status(404).send('User not found.');
+app.get('/history/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const [history] = await db.execute(
+      'SELECT VolunteerHistory.* FROM VolunteerHistory JOIN UserCredentials ON VolunteerHistory.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
+      [email]
+    );
+    res.status(200).json(history);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to retrieve volunteer history.');
   }
-
-  res.status(200).json(user.volunteerHistory);
 });
 
 // Test endpoint
