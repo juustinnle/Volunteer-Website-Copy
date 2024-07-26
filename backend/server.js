@@ -250,7 +250,7 @@ app.get('/matching-events/:email', async (req, res) => {
     
     // Get user skills and availability
     const [users] = await db.execute(
-      'SELECT skills, availability FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
+      'SELECT UserProfile.skills, UserProfile.availability FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
       [email]
     );
     
@@ -267,8 +267,8 @@ app.get('/matching-events/:email', async (req, res) => {
     
     // Filter matching events
     const matchingEvents = events.filter(event => {
-      const eventSkills = JSON.parse(event.required_skills);
-      const eventDates = JSON.parse(event.event_dates);
+      const eventSkills = JSON.parse(event.required_skills || '[]');
+      const eventDates = JSON.parse(event.event_dates || '[]');
       
       return eventSkills.some(skill => userSkills.includes(skill)) &&
              eventDates.some(eventDate => {
@@ -281,7 +281,7 @@ app.get('/matching-events/:email', async (req, res) => {
     
     res.status(200).json(matchingEvents);
   } catch (error) {
-    console.error(error);
+    console.error('Error in /matching-events/:email:', error);
     res.status(500).send('Failed to retrieve matching events.');
   }
 });
