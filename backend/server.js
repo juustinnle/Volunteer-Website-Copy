@@ -17,8 +17,8 @@ function logToFile(message) {
 const bcrypt = require('bcrypt');
 const db = require('./db');
 
-// Registration endpoint
 app.post('/register', async (req, res) => {
+  console.log('Registration attempt:', req.body);
   logToFile('==== REGISTRATION ROUTE ACCESSED ====');
   logToFile('Request body: ' + JSON.stringify(req.body));
 
@@ -26,27 +26,33 @@ app.post('/register', async (req, res) => {
     const { email, password, fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
     
     if (!email || !password) {
+      console.log('Registration failed: Email or password missing');
       logToFile('Registration failed: Email or password missing');
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
+    console.log('Received registration request for:', email);
     logToFile('Received registration request for: ' + email);
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
     logToFile('Password hashed successfully');
 
     const connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
+      console.log('Inserting into UserCredentials');
       logToFile('Inserting into UserCredentials');
       const [credResult] = await connection.execute(
         'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
         [email, hashedPassword]
       );
       const userId = credResult.insertId;
+      console.log('UserCredentials inserted, userId:', userId);
       logToFile('UserCredentials inserted, userId: ' + userId);
 
+      console.log('Inserting into UserProfile');
       logToFile('Inserting into UserProfile');
       await connection.execute(
         'INSERT INTO UserProfile (user_id, full_name, address, city, state, zipcode, skills, preferences, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -55,13 +61,16 @@ app.post('/register', async (req, res) => {
          preferences ? JSON.stringify(preferences) : null, 
          availability ? JSON.stringify(availability) : null]
       );
+      console.log('UserProfile inserted');
       logToFile('UserProfile inserted');
 
       await connection.commit();
+      console.log('Transaction committed');
       logToFile('Transaction committed');
       res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
       await connection.rollback();
+      console.error('Database error:', error);
       logToFile('Database error: ' + error.message);
       if (error.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({ error: 'User already exists.' });
@@ -71,6 +80,7 @@ app.post('/register', async (req, res) => {
       connection.release();
     }
   } catch (error) {
+    console.error('Registration error:', error);
     logToFile('Registration error: ' + error.message);
     res.status(500).json({ error: 'Registration failed', details: error.message });
   }
