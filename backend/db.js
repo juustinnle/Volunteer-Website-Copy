@@ -1,13 +1,15 @@
-const mysql = require('mysql2/promise');
+const mysql = require('mysql');
 
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Ftm5096!',
-  database: 'volunteer_app',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'password12345',  // replace 'yourpassword' with your actual MySQL root password
+    database: 'VolunteerManagement'
 });
 
-module.exports = pool;
+connection.connect((err) => {
+    if (err) throw err;
+    console.log('Connected to the MySQL database.');
+});
+
+module.exports = connection;
