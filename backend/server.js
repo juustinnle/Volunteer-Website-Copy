@@ -1,341 +1,392 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const mysql = require('mysql');
 
 const app = express();
 const port = 3000;
 
-app.use(express.json());
+app.use(bodyParser.json());
 app.use(cors());
 
-const fs = require('fs');
+// Create a connection to the database
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'password12345',
+    database: 'VolunteerManagement'
+});
 
-function logToFile(message) {
-  fs.appendFileSync('server.log', message + '\n');
-}
+// Connect to the database
+db.connect(err => {
+    if (err) {
+        console.error('Error connecting to the database:', err);
+        return;
+    }
+    console.log('Connected to the MySQL database.');
+});
 
-const bcrypt = require('bcrypt');
-const db = require('./db');
+app.use((req, res, next) => {
+    req.user = req.headers['x-user-email'];
+    next();
+});
 
-app.post('/register', async (req, res) => {
-  console.log('Registration route hit');
-  console.log('Request body:', req.body);
-
-  try {
+// Registration endpoint
+app.post('/register', (req, res) => {
     const { email, password } = req.body;
-    
-    if (!email || !password) {
-      console.log('Registration failed: Email or password missing');
-      return res.status(400).json({ error: 'Email and password are required.' });
-    }
+    const saltRounds = 10;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const connection = await db.getConnection();
-    
-    try {
-      await connection.beginTransaction();
-
-      const [credResult] = await connection.execute(
-        'INSERT INTO UserCredentials (username, password_hash) VALUES (?, ?)',
-        [email, hashedPassword]
-      );
-      const userId = credResult.insertId;
-
-      await connection.execute(
-        'INSERT INTO UserProfile (user_id) VALUES (?)',
-        [userId]
-      );
-
-      await connection.commit();
-      console.log('User registered successfully');
-      res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-      await connection.rollback();
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Registration failed', details: error.message });
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed', details: error.message });
-  }
+    bcrypt.hash(password, saltRounds, (err, hash) => {
+        if (err) {
+            res.status(500).send('Server error.');
+        } else {
+            const query = 'INSERT INTO UserCredentials (email, password) VALUES (?, ?)';
+            db.query(query, [email, hash], (err, result) => {
+                if (err) {
+                    if (err.code === 'ER_DUP_ENTRY') {
+                        res.status(400).send('User already exists.');
+                    } else {
+                        res.status(500).send('Server error.');
+                    }
+                } else {
+                    res.status(201).send('User registered successfully.');
+                }
+            });
+        }
+    });
 });
 
 // Login endpoint
-app.post('/login', async (req, res) => {
-  try {
+app.post('/login', (req, res) => {
     const { email, password } = req.body;
+    const query = 'SELECT password FROM UserCredentials WHERE email = ?';
 
-    if (!email || !password) {
-      return res.status(400).send('Email and password are required.');
-    }
-
-    const [users] = await db.execute(
-      'SELECT * FROM UserCredentials WHERE username = ?',
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res.status(401).send('Invalid email or password.');
-    }
-
-    const user = users[0];
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-
-    if (!isPasswordValid) {
-      return res.status(401).send('Invalid email or password.');
-    }
-
-    res.status(200).send('Login successful.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Login failed.');
-  }
+    db.query(query, [email], (err, results) => {
+        if (err) {
+            res.status(500).send('Server error.');
+        } else if (results.length === 0) {
+            res.status(401).send('Invalid email or password.');
+        } else {
+            const hashedPassword = results[0].password;
+            bcrypt.compare(password, hashedPassword, (err, result) => {
+                if (result) {
+                    res.status(200).send('Login successful.');
+                } else {
+                    res.status(401).send('Invalid email or password.');
+                }
+            });
+        }
+    });
 });
 
-app.get('/profile/:email', async (req, res) => {
-  try {
+// Get user profile endpoint
+app.get('/profile/:email', (req, res) => {
     const { email } = req.params;
-    const [users] = await db.execute(
-      'SELECT UserProfile.* FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
-      [email]
-    );
-    if (users.length === 0) {
-      return res.status(404).send('User not found.');
-    }
-    res.status(200).json(users[0]);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to retrieve profile.');
-  }
+    const query = 'SELECT * FROM UserProfile WHERE user_id = (SELECT id FROM UserCredentials WHERE email = ?)';
+
+    db.query(query, [email], (err, results) => {
+        if (err) {
+            console.error('Error fetching profile:', err);
+            res.status(500).send('Server error.');
+        } else if (results.length === 0) {
+            res.status(404).send('User not found.');
+        } else {
+            const profile = {
+                user_id: results[0].user_id,
+                full_name: results[0].full_name,
+                address: results[0].address,
+                address2: results[0].address2,
+                city: results[0].city,
+                state: results[0].state,
+                zipcode: results[0].zipcode,
+                skills: results[0].skills,
+                preferences: results[0].preferences,
+                availability_start: results[0].availability_start,
+                availability_end: results[0].availability_end
+            };
+            res.status(200).json(profile);
+        }
+    });
 });
 
-app.put('/profile/:email', async (req, res) => {
-  try {
+// Update user profile endpoint
+app.put('/profile/:email', (req, res) => {
     const { email } = req.params;
-    const { fullName, address, city, state, zipcode, skills, preferences, availability } = req.body;
-    const [result] = await db.execute(
-      'UPDATE UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id SET full_name = ?, address = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability = ? WHERE UserCredentials.username = ?',
-      [fullName, address, city, state, zipcode, JSON.stringify(skills), JSON.stringify(preferences), JSON.stringify(availability), email]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).send('User not found.');
-    }
-    res.status(200).send('Profile updated successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to update profile.');
-  }
+    const profile = req.body;
+
+    const checkQuery = 'SELECT * FROM UserProfile WHERE user_id = (SELECT id FROM UserCredentials WHERE email = ?)';
+    db.query(checkQuery, [email], (err, results) => {
+        if (err) {
+            console.error('Error checking profile:', err);
+            res.status(500).send('Server error.');
+        } else if (results.length === 0) {
+            const insertQuery = `
+                INSERT INTO UserProfile (user_id, full_name, address, address2, city, state, zipcode, skills, preferences, availability_start, availability_end)
+                VALUES ((SELECT id FROM UserCredentials WHERE email = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            db.query(insertQuery, [email, profile.full_name, profile.address, profile.address2, profile.city, profile.state, profile.zipcode, profile.skills, profile.preferences, profile.availability_start, profile.availability_end], (err, results) => {
+                if (err) {
+                    console.error('Error inserting profile:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(201).send('Profile created successfully.');
+                }
+            });
+        } else {
+            const updateQuery = `
+                UPDATE UserProfile
+                SET full_name = ?, address = ?, address2 = ?, city = ?, state = ?, zipcode = ?, skills = ?, preferences = ?, availability_start = ?, availability_end = ?
+                WHERE user_id = (SELECT id FROM UserCredentials WHERE email = ?)
+            `;
+            db.query(updateQuery, [profile.full_name, profile.address, profile.address2, profile.city, profile.state, profile.zipcode, profile.skills, profile.preferences, profile.availability_start, profile.availability_end, email], (err, results) => {
+                if (err) {
+                    console.error('Error updating profile:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(200).send('Profile updated successfully.');
+                }
+            });
+        }
+    });
 });
 
-// Create event endpoint
-app.post('/events', async (req, res) => {
-  try {
-    const { name, description, location, requiredSkills, urgency, eventDates } = req.body;
+// Get all user logins endpoint
+app.get('/logins', (req, res) => {
+    const query = 'SELECT email FROM UserCredentials';
 
-    if (!name || !description || !location || !requiredSkills || !urgency || !eventDates) {
-      return res.status(400).send('All fields are required.');
-    }
-
-    const [result] = await db.execute(
-      'INSERT INTO Events (name, description, location, required_skills, urgency, event_dates) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, description, location, JSON.stringify(requiredSkills), urgency, JSON.stringify(eventDates)]
-    );
-
-    res.status(201).send('Event created successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to create event.');
-  }
-});
-
-// Get all events endpoint
-app.get('/events', async (req, res) => {
-  try {
-    const [events] = await db.execute('SELECT * FROM Events');
-    res.status(200).json(events);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to retrieve events.');
-  }
-});
-
-// Delete event endpoint
-app.delete('/events/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [result] = await db.execute('DELETE FROM Events WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).send('Event not found.');
-    }
-    res.status(200).send('Event deleted successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to delete event.');
-  }
-});
-// Create notification endpoint
-app.post('/notifications', async (req, res) => {
-  try {
-    const { email, message } = req.body;
-
-    if (!email || !message) {
-      return res.status(400).send('Email and message are required.');
-    }
-
-    await db.execute('INSERT INTO Notifications (email, message) VALUES (?, ?)', [email, message]);
-    res.status(201).send('Notification created successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to create notification.');
-  }
-});
-
-// Get notifications for a user endpoint
-app.get('/notifications/:email', async (req, res) => {
-  try {
-    const { email } = req.params;
-    const [notifications] = await db.execute('SELECT * FROM Notifications WHERE email = ?', [email]);
-    res.status(200).json(notifications);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to retrieve notifications.');
-  }
-});
-
-// Delete notification endpoint
-app.delete('/notifications/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [result] = await db.execute('DELETE FROM Notifications WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).send('Notification not found.');
-    }
-    res.status(200).send('Notification deleted successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to delete notification.');
-  }
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching user logins:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(200).json(results);
+        }
+    });
 });
 
 // Get all users endpoint
-app.get('/users', async (req, res) => {
-  try {
-    const [users] = await db.execute('SELECT username FROM UserCredentials');
-    res.status(200).json(users);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to retrieve users.');
-  }
-});
+app.get('/users', (req, res) => {
+    const query = 'SELECT email FROM UserCredentials';
 
-app.get('/matching-events/:email', async (req, res) => {
-  try {
-    const { email } = req.params;
-    
-    // Get user skills and availability
-    const [users] = await db.execute(
-      'SELECT UserProfile.skills, UserProfile.availability FROM UserProfile JOIN UserCredentials ON UserProfile.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
-      [email]
-    );
-    
-    if (users.length === 0) {
-      return res.status(404).send('User not found.');
-    }
-    
-    const user = users[0];
-    const userSkills = JSON.parse(user.skills || '[]');
-    const userAvailability = JSON.parse(user.availability || '[]');
-    
-    // Get all events
-    const [events] = await db.execute('SELECT * FROM Events');
-    
-    // Filter matching events
-    const matchingEvents = events.filter(event => {
-      const eventSkills = JSON.parse(event.required_skills || '[]');
-      const eventDates = JSON.parse(event.event_dates || '[]');
-      
-      return eventSkills.some(skill => userSkills.includes(skill)) &&
-             eventDates.some(eventDate => {
-               return userAvailability.some(availDate => {
-                 return isDateOverlap(new Date(eventDate.start), new Date(eventDate.end), 
-                                      new Date(availDate.start), new Date(availDate.end));
-               });
-             });
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(200).json(results);
+        }
     });
-    
-    res.status(200).json(matchingEvents);
-  } catch (error) {
-    console.error('Error in /matching-events/:email:', error);
-    res.status(500).send('Failed to retrieve matching events.');
-  }
 });
 
-function isDateOverlap(startDate1, endDate1, startDate2, endDate2) {
-  return (startDate1 <= endDate2) && (startDate2 <= endDate1);
-}
+// Create an event endpoint
+app.post('/events', (req, res) => {
+    const { name, description, location, requiredSkills, urgency, eventDates } = req.body;
+    const [event_start_date, event_end_date] = eventDates[0].split(' to ');
 
-app.post('/match-volunteer', async (req, res) => {
-  try {
+    console.log('Event creation request body:', req.body);
+
+    const query = `INSERT INTO EventDetails (event_name, description, location, required_skills, urgency, event_start_date, event_end_date)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(query, [name, description, location, requiredSkills.join(','), urgency, event_start_date, event_end_date], (err, results) => {
+        if (err) {
+            console.error('Error inserting event:', err);
+            res.status(500).send('Server error.');
+        } else {
+            // Create a notification for the event with a blank email
+            const notificationQuery = `INSERT INTO Notifications (email, message) VALUES (?, ?)`;
+            const message = `A new event "${name}" has been created.`;
+            db.query(notificationQuery, ['', message], (err, results) => {
+                if (err) {
+                    console.error('Error creating notification:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(200).send('Event created successfully.');
+                }
+            });
+        }
+    });
+});
+
+// Get all events endpoint
+app.get('/events', (req, res) => {
+    const query = 'SELECT * FROM EventDetails';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching events:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(200).json(results);
+        }
+    });
+});
+
+// Endpoint to delete an event
+app.delete('/events/:id', (req, res) => {
+    const { id } = req.params;
+    const query = 'DELETE FROM EventDetails WHERE event_id = ?';
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Error deleting event:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(200).send('Event deleted successfully.');
+        }
+    });
+});
+
+// Match volunteer to event endpoint
+app.post('/match-volunteer', (req, res) => {
     const { email, eventId } = req.body;
-
-    // Check if user exists
-    const [users] = await db.execute('SELECT user_id FROM UserCredentials WHERE username = ?', [email]);
-    if (users.length === 0) {
-      return res.status(404).send('User not found.');
-    }
-    const userId = users[0].user_id;
-
-    // Check if event exists
-    const [events] = await db.execute('SELECT * FROM Events WHERE id = ?', [eventId]);
-    if (events.length === 0) {
-      return res.status(404).send('Event not found.');
-    }
-    const event = events[0];
-
-    // Check if already matched
-    const [matches] = await db.execute('SELECT * FROM VolunteerHistory WHERE user_id = ? AND event_id = ?', [userId, eventId]);
-    if (matches.length > 0) {
-      return res.status(400).send('Volunteer already matched to this event.');
-    }
-
-    // Create match
-    await db.execute(
-      'INSERT INTO VolunteerHistory (user_id, event_id, event_name, event_description, location, required_skills, urgency, dates, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, eventId, event.name, event.description, event.location, event.required_skills, event.urgency, event.event_dates, 'Registered']
-    );
-
-    // Create notification
-    await db.execute('INSERT INTO Notifications (email, message) VALUES (?, ?)', [email, `You have been matched to the event: ${event.name}`]);
-
-    res.status(200).send('Volunteer matched to event successfully.');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to match volunteer to event.');
-  }
+    const query = `
+        INSERT INTO VolunteerHistory (user_id, event_id)
+        VALUES ((SELECT id FROM UserCredentials WHERE email = ?), ?)
+    `;
+    db.query(query, [email, eventId], (err, results) => {
+        if (err) {
+            console.error('Error matching volunteer:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(201).send('Volunteer matched successfully.');
+        }
+    });
 });
 
-app.get('/history/:email', async (req, res) => {
-  try {
+// Endpoint to fetch volunteer history
+app.get('/history/:email', (req, res) => {
     const { email } = req.params;
-    const [history] = await db.execute(
-      'SELECT VolunteerHistory.* FROM VolunteerHistory JOIN UserCredentials ON VolunteerHistory.user_id = UserCredentials.user_id WHERE UserCredentials.username = ?',
-      [email]
-    );
-    res.status(200).json(history);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Failed to retrieve volunteer history.');
-  }
+    const query = `
+        SELECT e.event_name, e.description AS eventDescription, e.location, e.required_skills AS requiredSkills,
+               e.urgency, e.event_start_date, e.event_end_date, v.status
+        FROM VolunteerHistory v
+        JOIN EventDetails e ON v.event_id = e.event_id
+        WHERE v.email = ?;
+    `;
+    db.query(query, [email], (err, results) => {
+        if (err) {
+            console.error('Error fetching volunteer history:', err);
+            res.status(500).send('Server error.');
+        } else {
+            res.status(200).json(results);
+        }
+    });
 });
 
-// Test endpoint
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+// Fetch unread notifications for a user
+app.get('/notifications/:email', (req, res) => {
+    const { email } = req.params;
+    const queryGetUserId = 'SELECT id FROM UserCredentials WHERE email = ?';
+    const queryGetUnreadNotifications = `
+        SELECT n.* FROM Notifications n
+        LEFT JOIN UserNotifications un ON n.id = un.notification_id AND un.user_id = ?
+        WHERE un.is_read IS NULL OR un.is_read = FALSE;
+    `;
+
+    db.query(queryGetUserId, [email], (err, userResults) => {
+        if (err) {
+            console.error('Error fetching user ID:', err);
+            res.status(500).send('Server error.');
+        } else if (userResults.length === 0) {
+            console.log('User not found for email:', email);
+            res.status(404).send('User not found.');
+        } else {
+            const userId = userResults[0].id;
+            db.query(queryGetUnreadNotifications, [userId], (err, results) => {
+                if (err) {
+                    console.error('Error fetching notifications:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(200).json(results);
+                }
+            });
+        }
+    });
 });
 
+// Mark notification as read
+app.put('/notifications/:email/:id', (req, res) => {
+    const { email, id } = req.params;
+    const queryGetUserId = 'SELECT id FROM UserCredentials WHERE email = ?';
+    const queryMarkAsRead = `
+        INSERT INTO UserNotifications (user_id, notification_id, is_read)
+        VALUES ((SELECT id FROM UserCredentials WHERE email = ?), ?, TRUE)
+        ON DUPLICATE KEY UPDATE is_read = TRUE;
+    `;
+
+    db.query(queryGetUserId, [email], (err, userResults) => {
+        if (err) {
+            console.error('Error fetching user ID:', err);
+            res.status(500).send('Server error.');
+        } else if (userResults.length === 0) {
+            console.log('User not found for email:', email);
+            res.status(404).send('User not found.');
+        } else {
+            const userId = userResults[0].id;
+            db.query(queryMarkAsRead, [email, id], (err, results) => {
+                if (err) {
+                    console.error('Error marking notification as read:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(200).send('Notification marked as read.');
+                }
+            });
+        }
+    });
+});
+
+app.get('/matching-events/:email', (req, res) => {
+    const { email } = req.params;
+
+    const queryGetUserProfile = `
+        SELECT skills, availability_start, availability_end
+        FROM UserProfile
+        WHERE user_id = (SELECT id FROM UserCredentials WHERE email = ?)
+    `;
+
+    db.query(queryGetUserProfile, [email], (err, userProfileResults) => {
+        if (err) {
+            console.error('Error fetching user profile:', err);
+            res.status(500).send('Server error.');
+        } else if (userProfileResults.length === 0) {
+            res.status(404).send('User profile not found.');
+        } else {
+            const userSkills = userProfileResults[0].skills.split(',');
+            const userAvailabilityStart = new Date(userProfileResults[0].availability_start);
+            const userAvailabilityEnd = new Date(userProfileResults[0].availability_end);
+
+            const queryGetMatchingEvents = `
+                SELECT e.*
+                FROM EventDetails e
+                WHERE e.event_start_date <= ? AND e.event_end_date >= ?
+                AND EXISTS (
+                    SELECT 1
+                    FROM (
+                        SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(e.required_skills, ',', numbers.n), ',', -1)) AS skill
+                        FROM
+                        (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) numbers
+                        WHERE numbers.n <= LENGTH(e.required_skills) - LENGTH(REPLACE(e.required_skills, ',', '')) + 1
+                    ) AS eventSkills
+                    WHERE eventSkills.skill IN (?)
+                )
+            `;
+
+            db.query(queryGetMatchingEvents, [userAvailabilityEnd, userAvailabilityStart, userSkills], (err, eventResults) => {
+                if (err) {
+                    console.error('Error fetching matching events:', err);
+                    res.status(500).send('Server error.');
+                } else {
+                    res.status(200).json(eventResults);
+                }
+            });
+        }
+    });
+});
+
+
+// Start the server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
+
+module.exports = app;
