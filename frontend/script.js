@@ -142,48 +142,29 @@ document.addEventListener('DOMContentLoaded', function() {
   
     showSection('login');
   
-    function checkVolunteerHistory() {
-      const historyTableBody = document.querySelector('#history-table tbody');
-      const emptyMessage = document.getElementById('empty-message');
-      if (historyTableBody.children.length === 0) {
-        emptyMessage.style.display = 'block';
-      } else {
-        emptyMessage.style.display = 'none';
-      }
-    }
+    const registerForm = document.getElementById('register-form');
+    registerForm.addEventListener('submit', function(event) {
+      event.preventDefault();
   
-    checkVolunteerHistory();
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
   
-   const registerForm = document.getElementById('register-form');
-registerForm.addEventListener('submit', function(event) {
-  event.preventDefault();
-
-  const email = document.getElementById('reg-email').value;
-  const password = document.getElementById('reg-password').value;
-
-  console.log('Sending registration request:', { email, password });
-
-  fetch('http://localhost:3000/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ email, password })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Registration response:', data);
-    if (data.message) {
-      alert(data.message);
-    } else if (data.error) {
-      alert(data.error);
-    }
-  })
-  .catch(error => {
-    console.error('Registration error:', error);
-    alert('An error occurred during registration');
-  });
-});
+      fetch('http://localhost:3000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert(data);
+        location.reload(); // Refresh the page
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    });
   
     const loginForm = document.getElementById('login-form');
     loginForm.addEventListener('submit', function(event) {
@@ -207,7 +188,7 @@ registerForm.addEventListener('submit', function(event) {
           showSection('profile');
           fetchProfile(email);
           fetchNotifications(email);
-          fetchVolunteerHistory(email);
+          fetchVolunteerHistory(email); // Add this line to fetch volunteer history
           fetchEvents(); // Fetch events after login
           fetchAdminEvents(); // Fetch admin events after login
           location.reload(); // Refresh the page
@@ -218,45 +199,48 @@ registerForm.addEventListener('submit', function(event) {
       });
     });
   
+    function formatDate(dateString) {
+      const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+      return new Date(dateString).toLocaleDateString('en-CA', options);
+    }
+  
     function fetchProfile(email) {
       fetch(`http://localhost:3000/profile/${email}`)
-        .then(response => response.json())
-        .then(profile => {
-          document.getElementById('full-name').value = profile.fullName || '';
-          document.getElementById('address-1').value = profile.address1 || '';
-          document.getElementById('address-2').value = profile.address2 || '';
-          document.getElementById('city').value = profile.city || '';
-          document.getElementById('state').value = profile.state || '';
-          document.getElementById('zip').value = profile.zip || '';
-          document.getElementById('preferences').value = profile.preferences || '';
-          selectedSkillsContainer.innerHTML = '';
-          if (profile.skills) {
-            profile.skills.forEach(skill => {
-              const skillButton = document.createElement('button');
-              skillButton.textContent = skill;
-              skillButton.classList.add('skill-button');
-              skillButton.addEventListener('click', function() {
-                selectedSkillsContainer.removeChild(skillButton);
-              });
-              selectedSkillsContainer.appendChild(skillButton);
+      .then(response => response.json())
+      .then(profile => {
+        document.getElementById('full-name').value = profile.full_name || '';
+        document.getElementById('address-1').value = profile.address || '';
+        document.getElementById('address-2').value = profile.address2 || '';
+        document.getElementById('city').value = profile.city || '';
+        document.getElementById('state').value = profile.state || '';
+        document.getElementById('zip').value = profile.zipcode || '';
+        document.getElementById('preferences').value = profile.preferences || '';
+        selectedSkillsContainer.innerHTML = '';
+        if (profile.skills) {
+          profile.skills.split(',').forEach(skill => {
+            const skillButton = document.createElement('button');
+            skillButton.textContent = skill;
+            skillButton.classList.add('skill-button');
+            skillButton.addEventListener('click', function() {
+              selectedSkillsContainer.removeChild(skillButton);
             });
-          }
-          selectedDatesContainer.innerHTML = '';
-          if (profile.availability) {
-            profile.availability.forEach(dateRange => {
-              const dateButton = document.createElement('button');
-              dateButton.textContent = dateRange;
-              dateButton.classList.add('date-button');
-              dateButton.addEventListener('click', function() {
-                selectedDatesContainer.removeChild(dateButton);
-              });
-              selectedDatesContainer.appendChild(dateButton);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
+            selectedSkillsContainer.appendChild(skillButton);
+          });
+        }
+        selectedDatesContainer.innerHTML = '';
+        if (profile.availability_start && profile.availability_end) {
+          const dateButton = document.createElement('button');
+          dateButton.textContent = `${formatDate(profile.availability_start)} to ${formatDate(profile.availability_end)}`;
+          dateButton.classList.add('date-button');
+          dateButton.addEventListener('click', function() {
+            selectedDatesContainer.removeChild(dateButton);
+          });
+          selectedDatesContainer.appendChild(dateButton);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
     }
   
     const profileForm = document.getElementById('profile-form');
@@ -264,15 +248,16 @@ registerForm.addEventListener('submit', function(event) {
       event.preventDefault();
       const email = localStorage.getItem('email');
       const profile = {
-        fullName: document.getElementById('full-name').value,
-        address1: document.getElementById('address-1').value,
+        full_name: document.getElementById('full-name').value,
+        address: document.getElementById('address-1').value,
         address2: document.getElementById('address-2').value,
         city: document.getElementById('city').value,
         state: document.getElementById('state').value,
-        zip: document.getElementById('zip').value,
+        zipcode: document.getElementById('zip').value,
         preferences: document.getElementById('preferences').value,
-        skills: Array.from(selectedSkillsContainer.children).map(button => button.textContent),
-        availability: Array.from(selectedDatesContainer.children).map(button => button.textContent)
+        skills: Array.from(selectedSkillsContainer.children).map(button => button.textContent).join(','),
+        availability_start: selectedDatesContainer.children[0] ? selectedDatesContainer.children[0].textContent.split(' to ')[0] : '',
+        availability_end: selectedDatesContainer.children[0] ? selectedDatesContainer.children[0].textContent.split(' to ')[1] : ''
       };
   
       fetch(`http://localhost:3000/profile/${email}`, {
@@ -280,12 +265,12 @@ registerForm.addEventListener('submit', function(event) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ profile })
+        body: JSON.stringify(profile)
       })
       .then(response => response.text())
       .then(data => {
         alert(data);
-        location.reload(); // Refresh the page
+        fetchProfile(email); // Fetch the updated profile
       })
       .catch(error => {
         console.error('Error:', error);
@@ -317,7 +302,7 @@ registerForm.addEventListener('submit', function(event) {
         alert(data);
         fetchAdminEvents(); // Fetch the updated list of admin events
         fetchNotifications(localStorage.getItem('email')); // Fetch notifications after event creation
-        showSection('event-management')
+        showSection('event-management');
         location.reload(); // Refresh the page
       })
       .catch(error => {
@@ -352,289 +337,201 @@ registerForm.addEventListener('submit', function(event) {
   
     function fetchVolunteerHistory(email) {
       fetch(`http://localhost:3000/history/${email}`)
-        .then(response => response.json())
-        .then(history => {
-          const historyTableBody = document.querySelector('#history-table tbody');
-          historyTableBody.innerHTML = '';
-          if (history.length === 0) {
-            document.getElementById('empty-message').style.display = 'block';
-          } else {
-            document.getElementById('empty-message').style.display = 'none';
-            history.forEach(record => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td>${record.eventName}</td>
-                <td>${record.eventDescription || ''}</td>
-                <td>${record.location || ''}</td>
-                <td>${record.requiredSkills ? record.requiredSkills.join(', ') : ''}</td>
-                <td>${record.urgency || ''}</td>
-                <td>${record.dates.join(', ')}</td>
-                <td>${record.status}</td>
-              `;
-              historyTableBody.appendChild(row);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-    }
-  
-    fetch('http://localhost:3000/users')
       .then(response => response.json())
-      .then(users => {
-        const volunteerNameSelect = document.getElementById('volunteer-name');
-        users.forEach(user => {
-          const option = document.createElement('option');
-          option.value = user.email;
-          option.textContent = user.email;
-          volunteerNameSelect.appendChild(option);
-        });
+      .then(history => {
+        const historyTableBody = document.querySelector('#history-table tbody');
+        historyTableBody.innerHTML = '';
+        if (history.length === 0) {
+          document.getElementById('empty-message').style.display = 'block';
+        } else {
+          document.getElementById('empty-message').style.display = 'none';
+          history.forEach(record => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${record.event_name}</td>
+              <td>${record.event_description}</td>
+              <td>${record.location}</td>
+              <td>${record.required_skills.join(', ')}</td>
+              <td>${record.urgency}</td>
+              <td>${record.event_date}</td>
+              <td>${record.status}</td>
+            `;
+            historyTableBody.appendChild(row);
+          });
+        }
       })
       .catch(error => {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching volunteer history:', error);
       });
-  
-    // Fetch events and populate the volunteer matching form
-    fetch('http://localhost:3000/events')
-      .then(response => response.json())
-      .then(events => {
-        const matchedEventSelect = document.getElementById('matched-event');
-        events.forEach(event => {
-          const option = document.createElement('option');
-          option.value = event.id;
-          option.textContent = event.name;
-          matchedEventSelect.appendChild(option);
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching events:', error);
-      });
-  
-    function fetchProfile(email) {
-      fetch(`http://localhost:3000/profile/${email}`)
-        .then(response => response.json())
-        .then(profile => {
-          document.getElementById('full-name').value = profile.fullName || '';
-          document.getElementById('address-1').value = profile.address1 || '';
-          document.getElementById('address-2').value = profile.address2 || '';
-          document.getElementById('city').value = profile.city || '';
-          document.getElementById('state').value = profile.state || '';
-          document.getElementById('zip').value = profile.zip || '';
-          document.getElementById('preferences').value = profile.preferences || '';
-          selectedSkillsContainer.innerHTML = '';
-          if (profile.skills) {
-            profile.skills.forEach(skill => {
-              const skillButton = document.createElement('button');
-              skillButton.textContent = skill;
-              skillButton.classList.add('skill-button');
-              skillButton.addEventListener('click', function() {
-                selectedSkillsContainer.removeChild(skillButton);
-              });
-              selectedSkillsContainer.appendChild(skillButton);
-            });
-          }
-          selectedDatesContainer.innerHTML = '';
-          if (profile.availability) {
-            profile.availability.forEach(dateRange => {
-              const dateButton = document.createElement('button');
-              dateButton.textContent = dateRange;
-              dateButton.classList.add('date-button');
-              dateButton.addEventListener('click', function() {
-                selectedDatesContainer.removeChild(dateButton);
-              });
-              selectedDatesContainer.appendChild(dateButton);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
     }
   
     function fetchNotifications(email) {
       fetch(`http://localhost:3000/notifications/${email}`)
-        .then(response => response.json())
-        .then(notifications => {
-          const notificationList = document.getElementById('notification-list');
-          const notificationIndicator = document.getElementById('notification-indicator');
-          notificationList.innerHTML = '';
-          if (notifications.length > 0) {
-            notificationIndicator.style.display = 'inline';
-          } else {
-            notificationIndicator.style.display = 'none';
-          }
-          notifications.forEach(notification => {
-            const notificationItem = document.createElement('div');
-            notificationItem.classList.add('notification-item');
-            notificationItem.innerHTML = `
-              <span class="notification-message">${notification.message}</span>
-              <button class="delete-notification" data-email="${notification.email}" data-message="${notification.message}">X</button>
-            `;
-            notificationList.appendChild(notificationItem);
-          });
-  
-          // Add event listeners for delete buttons
-          document.querySelectorAll('.delete-notification').forEach(button => {
-            button.addEventListener('click', function() {
-              const email = button.getAttribute('data-email');
-              const message = button.getAttribute('data-message');
-              deleteNotification(email, message);
-            });
-          });
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-    }
-  
-    function deleteNotification(email, message) {
-      fetch(`http://localhost:3000/notifications/${email}/${message}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
+      .then(response => response.json())
+      .then(notifications => {
+        const notificationList = document.getElementById('notification-list');
+        const notificationIndicator = document.getElementById('notification-indicator');
+        notificationList.innerHTML = '';
+        if (notifications.length > 0) {
+          notificationIndicator.style.display = 'inline';
+        } else {
+          notificationIndicator.style.display = 'none';
         }
-      })
-      .then(response => response.text())
-      .then(data => {
-        alert(data);
-        fetchNotifications(email); // Refresh the notifications list
-      })
-      .catch(error => {
-        console.error('Error:', error);
+        notifications.forEach(notification => {
+          const notificationItem = document.createElement('div');
+          notificationItem.classList.add('notification-item');
+          notificationItem.innerHTML = `
+            <span class="notification-message">${notification.message}</span>
+            <button class="delete-notification
+            <button class="delete-notification" data-notification-id="${notification.id}">x</button>
+        `;
+        notificationList.appendChild(notificationItem);
       });
-    }
-  
-    function fetchVolunteerHistory(email) {
-      fetch(`http://localhost:3000/history/${email}`)
-        .then(response => response.json())
-        .then(history => {
-          const historyTableBody = document.querySelector('#history-table tbody');
-          historyTableBody.innerHTML = '';
-          if (history.length === 0) {
-            document.getElementById('empty-message').style.display = 'block';
-          } else {
-            document.getElementById('empty-message').style.display = 'none';
-            history.forEach(record => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td>${record.eventName}</td>
-                <td>${record.eventDescription || ''}</td>
-                <td>${record.location || ''}</td>
-                <td>${record.requiredSkills ? record.requiredSkills.join(', ') : ''}</td>
-                <td>${record.urgency || ''}</td>
-                <td>${record.dates.join(', ')}</td>
-                <td>${record.status}</td>
-              `;
-              historyTableBody.appendChild(row);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
+
+      // Re-bind delete notification buttons
+      document.querySelectorAll('.delete-notification').forEach(button => {
+        button.addEventListener('click', function(event) {
+          const notificationId = this.getAttribute('data-notification-id');
+          const email = localStorage.getItem('email');
+          markNotificationAsRead(email, notificationId);
         });
-    }
-  
-    function fetchEvents() {
-      fetch('http://localhost:3000/events')
-        .then(response => response.json())
-        .then(events => {
-          const eventsContainer = document.getElementById('events-container');
-          eventsContainer.innerHTML = '';
-          events.forEach(event => {
-            const eventDiv = document.createElement('div');
-            eventDiv.innerHTML = `
-              <h3>${event.name}</h3>
-              <p>${event.description}</p>
-              <p>Location: ${event.location}</p>
-              <p>Required Skills: ${event.requiredSkills.join(', ')}</p>
-              <p>Urgency: ${event.urgency}</p>
-              <p>Dates: ${event.eventDates.join(', ')}</p>
-            `;
-            eventsContainer.appendChild(eventDiv);
-          });
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-    }
-  
-    function fetchAdminEvents() {
-      fetch('http://localhost:3000/events')
-        .then(response => response.json())
-        .then(events => {
-          const adminEventsContainer = document.getElementById('admin-events-container');
-          adminEventsContainer.innerHTML = '';
-          events.forEach(event => {
-            const eventDiv = document.createElement('div');
-            eventDiv.innerHTML = `
-              <h3>${event.name}</h3>
-              <p>${event.description}</p>
-              <p>Location: ${event.location}</p>
-              <p>Required Skills: ${event.requiredSkills.join(', ')}</p>
-              <p>Urgency: ${event.urgency}</p>
-              <p>Dates: ${event.eventDates.join(', ')}</p>
-              <button onclick="deleteEvent('${event.id}')">Delete</button>
-            `;
-            adminEventsContainer.appendChild(eventDiv);
-          });
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-    }
-  
-    // Function to delete an event and refresh the page while staying on the same section
-    window.deleteEvent = function(eventId) {
-      fetch(`http://localhost:3000/events/${eventId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(response => response.text())
-      .then(data => {
-        alert(data);
-        fetchAdminEvents(); // Refresh the list of admin events
-        fetchNotifications(localStorage.getItem('email')); // Refresh notifications
-        location.reload();
-        showSection('event-management');
-      })
-      .catch(error => {
-        console.error('Error:', error);
       });
-    };
-  
-    const email = localStorage.getItem('email');
-    if (email) {
-      fetchProfile(email);
-      fetchNotifications(email);
-      fetchVolunteerHistory(email);
-      fetchEvents(); // Fetch events if already logged in
-      fetchAdminEvents(); // Fetch admin events if already logged in
-      showSection('events')
-    } else {
-      showSection('login');
-    }
-  
-    window.fetchMatchingEvents = function() {
-      const volunteerEmail = document.getElementById('volunteer-name').value;
-  
-      fetch(`http://localhost:3000/matching-events/${volunteerEmail}`)
-        .then(response => response.json())
-        .then(events => {
-          const matchedEventSelect = document.getElementById('matched-event');
-          matchedEventSelect.innerHTML = '';
-          events.forEach(event => {
-            const option = document.createElement('option');
-            option.value = event.id;
-            option.textContent = event.name;
-            matchedEventSelect.appendChild(option);
-          });
-        })
-        .catch(error => {
-          console.error('Error fetching matching events:', error);
-        });
-    };
+    })
+    .catch(error => {
+      console.error('Error fetching notifications:', error);
+    });
+  }
+
+  function markNotificationAsRead(email, notificationId) {
+    fetch(`http://localhost:3000/notifications/${email}/${notificationId}`, {
+      method: 'PUT'
+    })
+    .then(response => response.text())
+    .then(data => {
+      alert(data);
+      location.reload(); // Refresh the page
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+
+  function fetchAdminEvents() {
+    fetch('http://localhost:3000/events')
+    .then(response => response.json())
+    .then(events => {
+      const adminEventsContainer = document.getElementById('admin-events-container');
+      adminEventsContainer.innerHTML = '';
+      events.forEach(event => {
+        const eventDiv = document.createElement('div');
+        eventDiv.innerHTML = `
+          <h3>${event.event_name}</h3>
+          <p>${event.description}</p>
+          <p>Location: ${event.location}</p>
+          <p>Required Skills: ${event.required_skills}</p>
+          <p>Urgency: ${event.urgency}</p>
+          <p>Start Date: ${event.event_start_date}</p>
+          <p>End Date: ${event.event_end_date}</p>
+          <button onclick="deleteEvent(${event.event_id})">Delete</button>
+        `;
+        adminEventsContainer.appendChild(eventDiv);
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching admin events:', error);
+    });
+  }
+
+  function fetchEvents() {
+    fetch('http://localhost:3000/events')
+    .then(response => response.json())
+    .then(events => {
+      const eventsContainer = document.getElementById('events-container');
+      eventsContainer.innerHTML = '';
+      events.forEach(event => {
+        const eventDiv = document.createElement('div');
+        eventDiv.innerHTML = `
+          <h3>${event.event_name}</h3>
+          <p>${event.description}</p>
+          <p>Location: ${event.location}</p>
+          <p>Required Skills: ${event.required_skills}</p>
+          <p>Urgency: ${event.urgency}</p>
+          <p>Start Date: ${event.event_start_date}</p>
+          <p>End Date: ${event.event_end_date}</p>
+        `;
+        eventsContainer.appendChild(eventDiv);
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching events:', error);
+    });
+  }
+
+  window.deleteEvent = function(eventId) {
+    fetch(`http://localhost:3000/events/${eventId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => response.text())
+    .then(data => {
+      alert(data);
+      fetchAdminEvents(); // Refresh the list of admin events
+      fetchNotifications(localStorage.getItem('email')); // Refresh notifications
+      fetchEvents(); // Refresh the list of events
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+
+  window.fetchMatchingEvents = function() {
+    const volunteerEmail = document.getElementById('volunteer-name').value;
+
+    fetch(`http://localhost:3000/matching-events/${volunteerEmail}`)
+    .then(response => response.json())
+    .then(events => {
+      const matchedEventSelect = document.getElementById('matched-event');
+      matchedEventSelect.innerHTML = '<option>Select Event</option>';
+      events.forEach(event => {
+        const option = document.createElement('option');
+        option.value = event.event_id;
+        option.textContent = event.event_name;
+        matchedEventSelect.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching matching events:', error);
+    });
+  };
+
+  // Fetch users and populate volunteer dropdown
+  fetch('http://localhost:3000/users')
+  .then(response => response.json())
+  .then(users => {
+    const volunteerNameSelect = document.getElementById('volunteer-name');
+    volunteerNameSelect.innerHTML = '<option>Select User</option>';
+    users.forEach(user => {
+      const option = document.createElement('option');
+      option.value = user.email;
+      option.textContent = user.email;
+      volunteerNameSelect.appendChild(option);
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching users:', error);
   });
-  
+
+  const email = localStorage.getItem('email');
+  if (email) {
+    fetchProfile(email);
+    fetchNotifications(email);
+    fetchVolunteerHistory(email);
+    fetchEvents(); // Fetch events if already logged in
+    fetchAdminEvents(); // Fetch admin events if already logged in
+    showSection('profile'); // Show profile section if already logged in
+  } else {
+    showSection('login'); // Show login section if not logged in
+  }
+});
